@@ -24,25 +24,10 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>(DEFAULT_PROJECTS);
 
-  // Sync with Backend
+  // 使用默认项目数据，确保前端能够独立运行
   useEffect(() => {
-    // Initial Load
-    fetch('/api/projects')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setProjects(data);
-        } else {
-          // If DB is empty, init with default and save
-          setProjects(DEFAULT_PROJECTS);
-          DEFAULT_PROJECTS.forEach(p => saveToBackend(p));
-        }
-      })
-      .catch(err => {
-        console.error("Failed to load projects", err);
-        // 即使 API 调用失败，也使用默认项目
-        setProjects(DEFAULT_PROJECTS);
-      });
+    // 直接使用默认项目数据，不依赖后端 API
+    setProjects(DEFAULT_PROJECTS);
   }, []);
 
   const saveToBackend = (project: Project) => {
