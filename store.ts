@@ -38,7 +38,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           DEFAULT_PROJECTS.forEach(p => saveToBackend(p));
         }
       })
-      .catch(err => console.error("Failed to load projects", err));
+      .catch(err => {
+        console.error("Failed to load projects", err);
+        // 即使 API 调用失败，也使用默认项目
+        setProjects(DEFAULT_PROJECTS);
+      });
   }, []);
 
   const saveToBackend = (project: Project) => {
