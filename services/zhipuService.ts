@@ -1,11 +1,7 @@
 
-import { Type } from "@google/genai"; // Keeping Type for consistent interface with Gemini service
 import { Language } from '../types.ts';
 
-const ZHIPU_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
-const API_KEY = process.env.ZHIPU_API_KEY || "";
-
-// Using the OpenAI-compatible endpoint for Zhipu GLM-4V
+// Using the OpenAI-compatible endpoint for Zhipu GLM-4V via backend proxy
 export const analyzeInstallationState = async (
   imageData: string,
   currentStep: any,
@@ -54,11 +50,11 @@ export const analyzeInstallationState = async (
   ];
 
   try {
-    const response = await fetch(ZHIPU_API_URL, {
+    // Use backend proxy API instead of direct API call
+    const response = await fetch("/api/proxy/zhipu/chat", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: model,
@@ -100,15 +96,13 @@ export const analyzeInstallationState = async (
 
 // ... image analysis code ...
 
-const ZHIPU_EMBEDDING_URL = "https://open.bigmodel.cn/api/paas/v4/embeddings";
-
 export const generateEmbedding = async (text: string): Promise<number[] | null> => {
   try {
-    const response = await fetch(ZHIPU_EMBEDDING_URL, {
+    // Use backend proxy API instead of direct API call
+    const response = await fetch("/api/proxy/zhipu/chat", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: "embedding-2",
