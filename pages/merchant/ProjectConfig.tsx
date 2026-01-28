@@ -90,7 +90,7 @@ const ProjectConfig: React.FC = () => {
     });
   };
 
-  const usagePercent = Math.min(100, (project.usage.totalTokensUsed / project.usage.monthlyLimit) * 100);
+  const usagePercent = Math.min(100, ((project.usage?.totalTokensUsed || 0) / (project.usage?.monthlyLimit || 1000000)) * 100);
 
   return (
     <Layout title={`${project.name}`}>
@@ -258,7 +258,7 @@ const ProjectConfig: React.FC = () => {
                 <div className="flex justify-between items-end mb-6">
                   <div>
                     <label className="text-xs font-black text-gray-400 uppercase tracking-widest">{t.tokenUsage}</label>
-                    <div className="text-4xl font-black text-gray-900 mt-2">{project.usage.totalTokensUsed.toLocaleString()} <span className="text-base font-bold text-gray-400">/ {project.usage.monthlyLimit.toLocaleString()} {t.tokens}</span></div>
+                    <div className="text-4xl font-black text-gray-900 mt-2">{(project.usage?.totalTokensUsed || 0).toLocaleString()} <span className="text-base font-bold text-gray-400">/ {(project.usage?.monthlyLimit || 1000000).toLocaleString()} {t.tokens}</span></div>
                   </div>
                   <div className={`px-4 py-1.5 rounded-full font-black text-[10px] uppercase ${usagePercent > 90 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>{usagePercent.toFixed(1)}% Consumed</div>
                 </div>

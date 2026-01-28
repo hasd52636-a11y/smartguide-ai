@@ -64,6 +64,9 @@ export const DEFAULT_PROJECTS: any[] = [
         targetState: '杯盖上的刻度线与杯身的指示箭头完全对齐，没有明显缝隙。',
         checkpoints: ['箭头对齐', '手感有明显阻力']
       }
-    ]
+    ],
+    usage: {
+      totalTokensUsed: 0
+    }
   }
 ];

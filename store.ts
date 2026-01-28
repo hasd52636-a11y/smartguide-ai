@@ -74,7 +74,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setProjects(prev => {
       const next = prev.map(p =>
         p.id === projectId
-          ? { ...p, usage: { ...p.usage, totalTokensUsed: p.usage.totalTokensUsed + tokens } }
+          ? { 
+              ...p, 
+              usage: { 
+                ...p.usage, 
+                totalTokensUsed: (p.usage?.totalTokensUsed || 0) + tokens 
+              } 
+            }
           : p
       );
       return next;
