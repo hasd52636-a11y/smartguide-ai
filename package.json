@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
+    "@vercel/analytics": "^1.6.1",
     "better-sqlite3": "^12.6.2",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",

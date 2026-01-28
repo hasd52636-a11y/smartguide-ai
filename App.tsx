@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import Login from './pages/merchant/Login.tsx';
 import Dashboard from './pages/merchant/Dashboard.tsx';
 import ProjectConfig from './pages/merchant/ProjectConfig.tsx';
@@ -26,6 +27,7 @@ const App: React.FC = () => {
         {/* Fallback */}
         <Route path="/" element={<Navigate to={auth.isLoggedIn ? "/dashboard" : "/login"} />} />
       </Routes>
+      <Analytics />
     </HashRouter>
   );
 };
