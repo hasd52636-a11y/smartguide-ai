@@ -1,16 +1,29 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/proxy/gemini/chat",
-      "destination": "/api/proxy/gemini/chat.js"
-    },
-    {
-      "source": "/api/proxy/zhipu/chat",
-      "destination": "/api/proxy/zhipu/chat.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
-  ]
+  ],
+  "routes": [
+    {
+      "src": "/api/proxy/gemini/chat",
+      "dest": "/api/proxy/gemini/chat.js"
+    },
+    {
+      "src": "/api/proxy/zhipu/chat",
+      "dest": "/api/proxy/zhipu/chat.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
