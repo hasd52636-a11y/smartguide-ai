@@ -99,9 +99,25 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 };
 
 export const useStore = () => {
-  const context = useContext(StoreContext);
-  if (context === undefined) {
-    throw new Error('useStore must be used within a StoreProvider');
+  try {
+    const context = useContext(StoreContext);
+    if (context === undefined) {
+      throw new Error('useStore must be used within a StoreProvider');
+    }
+    return context;
+  } catch (error) {
+    console.error("useStore error:", error);
+    // 返回默认值，确保应用不会崩溃
+    return {
+      projects: DEFAULT_PROJECTS,
+      auth: { phone: null, isLoggedIn: false, language: Language.ZH },
+      login: () => {},
+      logout: () => {},
+      setLanguage: () => {},
+      addProject: () => {},
+      updateProject: () => {},
+      trackUsage: () => {},
+      t: translations[Language.ZH]
+    };
   }
-  return context;
 };
