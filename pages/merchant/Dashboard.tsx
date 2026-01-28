@@ -1,0 +1,93 @@
+
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import Layout from '../../components/Layout.tsx';
+import { ICONS } from '../../constants.tsx';
+import { useStore } from '../../store.ts';
+// Added TTSEngine to the imported types
+import { Project, VoiceGender, LLMProvider, TTSEngine } from '../../types.ts';
+
+const Dashboard: React.FC = () => {
+  const { projects, addProject, t } = useStore();
+  const navigate = useNavigate();
+
+  const createNewProject = () => {
+    const id = Math.random().toString(36).substr(2, 9);
+    // Fix: Added missing 'ttsEngine' property to comply with the ProjectConfig interface
+    const newProject: Project = {
+      id,
+      name: t.createNewProject,
+      description: '',
+      createdAt: new Date().toISOString().split('T')[0],
+      status: 'inactive',
+      config: {
+        assistantName: 'AI Guide',
+        systemPrompt: 'You are an helpful assistant.',
+        voiceGender: VoiceGender.FEMALE,
+        // Defaulting to Gemini TTS engine
+        ttsEngine: TTSEngine.GEMINI,
+        blacklist: [],
+        provider: LLMProvider.GEMINI
+      },
+      steps: [],
+      knowledgeBase: [],
+      usage: {
+        totalTokensUsed: 0,
+        monthlyLimit: 1000000,
+        billingCycleStart: new Date().toISOString(),
+        overageRate: 0.05
+      }
+    };
+    addProject(newProject);
+    navigate(`/project/${id}`);
+  };
+
+  return (
+    <Layout title={t.dashboardTitle}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <button 
+          onClick={createNewProject}
+          className="group relative flex flex-col items-center justify-center h-52 border-2 border-dashed border-gray-300 rounded-2xl hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer"
+        >
+          <div className="bg-gray-100 group-hover:bg-blue-100 p-3 rounded-full mb-3 transition-colors">
+            <ICONS.Plus className="w-6 h-6 text-gray-400 group-hover:text-blue-500" />
+          </div>
+          <span className="text-gray-500 group-hover:text-blue-600 font-medium">{t.createNewProject}</span>
+        </button>
+
+        {projects.map(project => (
+          <div 
+            key={project.id}
+            onClick={() => navigate(`/project/${project.id}`)}
+            className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+          >
+            <div className="p-5 flex-1">
+              <div className="flex items-start justify-between mb-3">
+                <div className="bg-blue-50 p-2.5 rounded-xl">
+                  <ICONS.Smartphone className="w-5 h-5 text-blue-600" />
+                </div>
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                  project.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {project.status === 'active' ? t.active : t.draft}
+                </span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-lg mb-1">{project.name}</h3>
+              <p className="text-gray-500 text-sm line-clamp-2">{project.description}</p>
+            </div>
+            
+            <div className="border-t border-gray-100 p-5 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <ICONS.Database className="w-4 h-4" />
+                {project.steps.length} {t.stepsConfigured}
+              </div>
+              <ICONS.ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Layout>
+  );
+};
+
+export default Dashboard;

@@ -1,0 +1,8 @@
+{
+  "name": "SmartGuide AI",
+  "description": "An intelligent AI installation assistant that transforms product manuals into interactive, voice-guided, and vision-corrected experiences.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
