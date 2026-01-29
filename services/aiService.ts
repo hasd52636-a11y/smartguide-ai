@@ -40,10 +40,11 @@ export const analyzeInstallationState = async (
   currentStep: any,
   systemPrompt: string,
   language: Language = Language.EN,
-  provider: LLMProvider = LLMProvider.ZHIPU
+  provider: LLMProvider = LLMProvider.ZHIPU,
+  knowledgeBase: any[] = []
 ): Promise<AIResponse> => {
-  // 只使用智谱 AI 进行安装状态分析
-  return await import('./zhipuService.ts').then(m => m.analyzeInstallationState(imageData, currentStep, systemPrompt, language));
+  // 只使用智谱 AI 进行安装状态分析，包含知识库信息
+  return await import('./zhipuService.ts').then(m => m.analyzeInstallationState(imageData, currentStep, systemPrompt, language, knowledgeBase));
 };
 
 export const chatWithAssistant = async (

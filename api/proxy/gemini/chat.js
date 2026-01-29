@@ -6,7 +6,8 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const API_KEY_GEMINI = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    // 优先使用请求中的API密钥，其次使用环境变量
+    const API_KEY_GEMINI = req.headers['x-gemini-api-key'] || process.env.API_KEY || process.env.GEMINI_API_KEY;
 
     if (!API_KEY_GEMINI) {
         return res.status(500).json({ error: "Server missing Gemini API Key" });

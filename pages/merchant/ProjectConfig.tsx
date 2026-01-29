@@ -1,6 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+// 浏览器环境中不使用path模块，使用自定义函数
+const basename = (filePath: string): string => {
+  return filePath.split('/').pop()?.split('\\').pop() || '';
+};
 import Layout from '../../components/Layout.tsx';
 import { ICONS } from '../../constants.tsx';
 import { useStore } from '../../store.ts';
@@ -25,11 +29,17 @@ const ProjectConfig: React.FC = () => {
   const [isPlayingVoice, setIsPlayingVoice] = useState<string | null>(null);
   const [voiceCloneForm, setVoiceCloneForm] = useState({
     voiceName: '',
-    inputText: '欢迎使用我们的智能助手',
+    inputText: '',
     fileId: '',
-    sampleText: ''
+    sampleText: '你好，我是智能助手，很高兴为您服务。'
   });
   const [selectedVoice, setSelectedVoice] = useState<string>('tongtong');
+  const [testingZhipuApiKey, setTestingZhipuApiKey] = useState(false);
+  const [testingGeminiApiKey, setTestingGeminiApiKey] = useState(false);
+  const [zhipuApiKeyStatus, setZhipuApiKeyStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [geminiApiKeyStatus, setGeminiApiKeyStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [showZhipuApiKey, setShowZhipuApiKey] = useState(false);
+  const [showGeminiApiKey, setShowGeminiApiKey] = useState(false);
   const voiceFileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
@@ -63,42 +73,60 @@ const ProjectConfig: React.FC = () => {
 
     setIsParsing(true);
     try {
-      // In a real app, this would process the selected files
-      // For MVP demonstration, we will generate mock knowledge base content
-      const currentDate = new Date().toISOString().split('T')[0];
-      const mockKnowledgeBase = [
-        {
-          type: 'text' as const,
-          text: "Power Connection: Plug in the Type-C cable. Ensure it clicks.",
-          embedding: [],
-          thumbnail: 'https://via.placeholder.com/100x100?text=Document',
-          summary: 'Contains instructions for power connection setup',
-          date: currentDate,
-          filename: 'product-manual.txt'
-        },
-        {
-          type: 'image' as const,
-          url: 'https://via.placeholder.com/400x300?text=Product+Image',
-          thumbnail: 'https://via.placeholder.com/100x100?text=Thumbnail',
-          summary: 'Product image showing the device',
-          date: currentDate,
-          filename: 'product-image.jpg'
-        },
-        {
-          type: 'video' as const,
-          url: 'https://via.placeholder.com/640x360?text=Installation+Video',
-          thumbnail: 'https://via.placeholder.com/100x100?text=Video+Thumbnail',
-          duration: 120,
-          summary: 'Step-by-step installation video (2 minutes)',
-          date: currentDate,
-          filename: 'installation-guide.mp4'
+      // 创建FormData对象
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+      
+      // 上传文件到服务器
+      const response = await fetch('/api/upload/knowledge', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // 转换上传的文件数据为知识库格式
+          const knowledgeBaseItems = data.files.map((file: any) => ({
+            id: file.id,
+            type: file.type,
+            filename: file.filename,
+            summary: file.summary,
+            date: file.date,
+            // 根据文件类型添加相应的字段
+            ...(file.type === 'image' && {
+              url: `/uploads/${basename(file.path)}`,
+              thumbnail: `/uploads/${basename(file.path)}`
+            }),
+            ...(file.type === 'video' && {
+              url: `/uploads/${basename(file.path)}`,
+              thumbnail: `/uploads/${basename(file.path)}`,
+              duration: 0 // 实际应用中可以通过视频处理获取
+            }),
+            ...(file.type === 'text' && {
+              text: `Content of ${file.filename}`, // 实际应用中可以通过文件解析获取
+              embedding: []
+            })
+          }));
+          
+          // 更新知识库
+          updateProject(project.id, { 
+            knowledgeBase: [...(project.knowledgeBase || []), ...knowledgeBaseItems] 
+          });
+          
+          alert(`成功上传 ${files.length} 个文件到知识库！`);
+        } else {
+          alert('文件上传失败：' + (data.error || '未知错误'));
         }
-      ];
-
-      // 只更新知识库，不自动生成步骤
-      updateProject(project.id, { knowledgeBase: mockKnowledgeBase });
-    } catch (e) {
-      console.error("File processing failed", e);
+      } else {
+        const errorData = await response.json();
+        alert('文件上传失败：' + (errorData.error || '服务器错误'));
+      }
+    } catch (error) {
+      console.error("File processing failed", error);
+      alert('文件处理失败，请重试');
     } finally {
       setIsParsing(false);
       // 重置文件输入，允许选择相同的文件
@@ -180,10 +208,49 @@ const ProjectConfig: React.FC = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    // 这里应该上传文件到服务器获取fileId
-    // 为了演示，使用模拟的fileId
-    setVoiceCloneForm(prev => ({ ...prev, fileId: 'file_' + Math.random().toString(36).substr(2, 9) }));
-    alert('文件上传成功，已生成模拟fileId');
+    const file = files[0];
+    
+    // 检查文件大小
+    if (file.size > 10 * 1024 * 1024) {
+      alert('文件大小不能超过10MB');
+      return;
+    }
+    
+    // 检查文件类型
+    const allowedTypes = ['.mp3', '.wav'];
+    const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    if (!allowedTypes.includes(ext)) {
+      alert('只允许上传MP3或WAV格式的文件');
+      return;
+    }
+    
+    // 创建FormData对象
+    const formData = new FormData();
+    formData.append('voice', file);
+    
+    try {
+      // 上传文件到服务器
+      const response = await fetch('/api/upload/voice', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setVoiceCloneForm(prev => ({ ...prev, fileId: data.fileId }));
+          alert(`文件上传成功！文件名：${data.fileName}，大小：${(data.fileSize / 1024 / 1024).toFixed(2)}MB`);
+        } else {
+          alert('文件上传失败：' + (data.error || '未知错误'));
+        }
+      } else {
+        const errorData = await response.json();
+        alert('文件上传失败：' + (errorData.error || '服务器错误'));
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      alert('文件上传失败，请重试');
+    }
   };
   
   const handleCloneVoice = async () => {
@@ -309,6 +376,74 @@ const ProjectConfig: React.FC = () => {
   };
 
   const usagePercent = Math.min(100, ((project.usage?.totalTokensUsed || 0) / (project.usage?.monthlyLimit || 1000000)) * 100);
+
+  // 测试智谱AI API密钥
+  const testZhipuApiKey = async (apiKey: string) => {
+    if (!apiKey) {
+      setZhipuApiKeyStatus({ success: false, message: '请输入API密钥' });
+      return;
+    }
+    
+    setTestingZhipuApiKey(true);
+    setZhipuApiKeyStatus(null);
+    
+    try {
+      const response = await fetch('/api/proxy/zhipu/status', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-zhipu-api-key': apiKey
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        setZhipuApiKeyStatus({ success: true, message: 'API密钥有效，连接正常' });
+      } else {
+        setZhipuApiKeyStatus({ success: false, message: `API密钥无效: ${data.error || '未知错误'}` });
+      }
+    } catch (error) {
+      console.error('Error testing Zhipu API key:', error);
+      setZhipuApiKeyStatus({ success: false, message: `测试失败: ${error instanceof Error ? error.message : '未知错误'}` });
+    } finally {
+      setTestingZhipuApiKey(false);
+    }
+  };
+  
+  // 测试Gemini API密钥
+  const testGeminiApiKey = async (apiKey: string) => {
+    if (!apiKey) {
+      setGeminiApiKeyStatus({ success: false, message: '请输入API密钥' });
+      return;
+    }
+    
+    setTestingGeminiApiKey(true);
+    setGeminiApiKeyStatus(null);
+    
+    try {
+      const response = await fetch('/api/proxy/gemini/status', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-gemini-api-key': apiKey
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        setGeminiApiKeyStatus({ success: true, message: 'API密钥有效，连接正常' });
+      } else {
+        setGeminiApiKeyStatus({ success: false, message: `API密钥无效: ${data.error || '未知错误'}` });
+      }
+    } catch (error) {
+      console.error('Error testing Gemini API key:', error);
+      setGeminiApiKeyStatus({ success: false, message: `测试失败: ${error instanceof Error ? error.message : '未知错误'}` });
+    } finally {
+      setTestingGeminiApiKey(false);
+    }
+  };
 
   return (
     <Layout title={`${project.name}`}>
@@ -579,24 +714,100 @@ const ProjectConfig: React.FC = () => {
                     <div className="space-y-3">
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">智谱AI API密钥</label>
-                        <input 
-                          type="password" 
-                          value={project.config.zhipuApiKey || ''} 
-                          onChange={(e) => updateProject(project.id, { config: { ...project.config, zhipuApiKey: e.target.value } })} 
-                          placeholder="请输入智谱AI API密钥" 
-                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                        />
+                        <div className="flex gap-2">
+                          <div className="flex-1 relative">
+                            <input 
+                              type={showZhipuApiKey ? "text" : "password"} 
+                              value={project.config.zhipuApiKey || ''} 
+                              onChange={(e) => updateProject(project.id, { config: { ...project.config, zhipuApiKey: e.target.value } })} 
+                              placeholder="请输入智谱AI API密钥" 
+                              className="w-full px-4 py-3 pr-10 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                            />
+                            <button 
+                              onClick={() => setShowZhipuApiKey(!showZhipuApiKey)} 
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              {showZhipuApiKey ? (
+                                <ICONS.EyeOff className="w-4 h-4" />
+                              ) : (
+                                <ICONS.Eye className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                          <button 
+                            onClick={() => testZhipuApiKey(project.config.zhipuApiKey || '')} 
+                            disabled={testingZhipuApiKey}
+                            className="px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+                          >
+                            {testingZhipuApiKey ? (
+                              <>
+                                <ICONS.Clock className="w-4 h-4 animate-spin inline-block mr-1" />
+                                测试中
+                              </>
+                            ) : (
+                              '测试'
+                            )}
+                          </button>
+                        </div>
+                        {zhipuApiKeyStatus && (
+                          <div className={`text-xs mt-1 flex items-center ${zhipuApiKeyStatus.success ? 'text-green-600' : 'text-red-600'}`}>
+                            {zhipuApiKeyStatus.success ? (
+                              <ICONS.CheckCircle2 className="w-3 h-3 mr-1" />
+                            ) : (
+                              <ICONS.AlertCircle className="w-3 h-3 mr-1" />
+                            )}
+                            {zhipuApiKeyStatus.message}
+                          </div>
+                        )}
                         <p className="text-xs text-gray-400 mt-1">用于语音合成、音色克隆等功能</p>
                       </div>
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">Gemini API密钥</label>
-                        <input 
-                          type="password" 
-                          value={project.config.geminiApiKey || ''} 
-                          onChange={(e) => updateProject(project.id, { config: { ...project.config, geminiApiKey: e.target.value } })} 
-                          placeholder="请输入Gemini API密钥" 
-                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                        />
+                        <div className="flex gap-2">
+                          <div className="flex-1 relative">
+                            <input 
+                              type={showGeminiApiKey ? "text" : "password"} 
+                              value={project.config.geminiApiKey || ''} 
+                              onChange={(e) => updateProject(project.id, { config: { ...project.config, geminiApiKey: e.target.value } })} 
+                              placeholder="请输入Gemini API密钥" 
+                              className="w-full px-4 py-3 pr-10 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                            />
+                            <button 
+                              onClick={() => setShowGeminiApiKey(!showGeminiApiKey)} 
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              {showGeminiApiKey ? (
+                                <ICONS.EyeOff className="w-4 h-4" />
+                              ) : (
+                                <ICONS.Eye className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                          <button 
+                            onClick={() => testGeminiApiKey(project.config.geminiApiKey || '')} 
+                            disabled={testingGeminiApiKey}
+                            className="px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+                          >
+                            {testingGeminiApiKey ? (
+                              <>
+                                <ICONS.Clock className="w-4 h-4 animate-spin inline-block mr-1" />
+                                测试中
+                              </>
+                            ) : (
+                              '测试'
+                            )}
+                          </button>
+                        </div>
+                        {geminiApiKeyStatus && (
+                          <div className={`text-xs mt-1 flex items-center ${geminiApiKeyStatus.success ? 'text-green-600' : 'text-red-600'}`}>
+                            {geminiApiKeyStatus.success ? (
+                              <ICONS.CheckCircle2 className="w-3 h-3 mr-1" />
+                            ) : (
+                              <ICONS.AlertCircle className="w-3 h-3 mr-1" />
+                            )}
+                            {geminiApiKeyStatus.message}
+                          </div>
+                        )}
                         <p className="text-xs text-gray-400 mt-1">用于图像分析等功能</p>
                       </div>
                     </div>

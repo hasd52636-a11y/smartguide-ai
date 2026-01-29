@@ -463,7 +463,9 @@ const ClientGuide: React.FC = () => {
       imageData,
       project?.steps[currentStepIndex],
       project?.config.systemPrompt || '',
-      auth.language
+      auth.language,
+      undefined,
+      project?.knowledgeBase || []
     );
 
     if (result) {

@@ -1,6 +1,7 @@
-const API_KEY_GEMINI = process.env.API_KEY || "";
-
 export default async function handler(req, res) {
+  // 优先使用请求中的API密钥，其次使用环境变量
+  const API_KEY_GEMINI = req.headers['x-gemini-api-key'] || process.env.API_KEY || "";
+
   if (!API_KEY_GEMINI) {
     return res.status(200).json({ ok: false, error: "Server missing Gemini API Key" });
   }

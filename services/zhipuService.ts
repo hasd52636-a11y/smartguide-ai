@@ -22,9 +22,21 @@ export const analyzeInstallationState = async (
   imageData: string,
   currentStep: any,
   systemPrompt: string,
-  language: Language = Language.EN
+  language: Language = Language.EN,
+  knowledgeBase: any[] = []
 ) => {
   const model = "glm-4v-flash"; // Use Flash for speed/cost, or glm-4v for quality
+
+  // 构建知识库参考信息
+  let knowledgeBaseReference = "";
+  if (knowledgeBase && knowledgeBase.length > 0) {
+    knowledgeBaseReference = `\n\nKnowledge Base References:\n`;
+    knowledgeBase.forEach((item, index) => {
+      if (item.summary && item.filename) {
+        knowledgeBaseReference += `${index + 1}. ${item.filename}: ${item.summary}\n`;
+      }
+    });
+  }
 
   const instruction = `
     Role: Professional Industrial Quality Inspector.
@@ -32,6 +44,7 @@ export const analyzeInstallationState = async (
     
     Current Step: ${currentStep.name}
     Target State: ${currentStep.targetState}
+    ${knowledgeBaseReference}
     
     Output JSON ONLY:
     {
@@ -53,7 +66,7 @@ export const analyzeInstallationState = async (
       content: [
         {
           type: "text",
-          text: `Evaluate this installation. System Context: ${systemPrompt}. Respond in ${language === Language.ZH ? 'Chinese' : 'English'}.`
+          text: `Evaluate this installation. System Context: ${systemPrompt}. Use knowledge base references if relevant. Respond in ${language === Language.ZH ? 'Chinese' : 'English'}.`
         },
         {
           type: "image_url",

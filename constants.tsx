@@ -20,7 +20,9 @@ import {
   Video,
   Trash,
   Volume2,
-  Clock
+  Clock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 
@@ -44,7 +46,9 @@ export const ICONS = {
   Video,
   Trash,
   Volume2,
-  Clock
+  Clock,
+  Eye,
+  EyeOff
 };
 
 

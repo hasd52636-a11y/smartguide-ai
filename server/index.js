@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import bodyParser from 'body-parser';
 import * as db from './db.js';
 import { GoogleGenAI } from "@google/genai";
+import multer from 'multer';
+import fs from 'fs/promises';
 
 // Environment variables
 const PORT = process.env.PORT || 3001;
@@ -15,9 +17,47 @@ const API_KEY_ZHIPU = process.env.ZHIPU_API_KEY || "a75d46768b0f45dc90a5969077ff
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+// 文件上传配置
+const uploadDir = path.join(__dirname, 'uploads');
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    try {
+      // 确保上传目录存在
+      await fs.mkdir(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(error, null);
+    }
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB 限制
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['.mp3', '.wav'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('只允许上传 MP3 或 WAV 格式的文件'), false);
+    }
+  }
+});
+
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' })); // Large limit for images
 app.use(express.static(path.join(__dirname, '../dist')));
+// 静态文件服务，用于访问上传的文件
+app.use('/uploads', express.static(uploadDir));
 
 // --- Project API ---
 
@@ -38,6 +78,83 @@ app.post('/api/projects', (req, res) => {
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+// --- File Upload API ---
+
+app.post('/api/upload/voice', upload.single('voice'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        
+        // 生成唯一的fileId
+        const fileId = 'file_' + Date.now() + '_' + Math.round(Math.random() * 1E9);
+        
+        // 这里可以根据需要将文件信息存储到数据库
+        // 暂时只返回fileId
+        res.json({ 
+            success: true, 
+            fileId, 
+            fileName: req.file.originalname,
+            fileSize: req.file.size,
+            filePath: req.file.path
+        });
+    } catch (error) {
+        console.error('File upload error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/upload/knowledge', upload.array('files', 10), async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'No files uploaded' });
+        }
+        
+        // 处理上传的文件
+        const uploadedFiles = [];
+        const currentDate = new Date().toISOString().split('T')[0];
+        
+        for (const file of req.files) {
+            // 生成唯一的fileId
+            const fileId = 'kb_' + Date.now() + '_' + Math.round(Math.random() * 1E9);
+            
+            // 根据文件类型确定处理方式
+            let fileType = 'text';
+            let summary = 'Uploaded file';
+            
+            const ext = path.extname(file.originalname).toLowerCase();
+            if (['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
+                fileType = 'image';
+                summary = 'Image file';
+            } else if (['.mp4', '.avi', '.mov', '.wmv'].includes(ext)) {
+                fileType = 'video';
+                summary = 'Video file';
+            } else if (['.pdf', '.doc', '.docx', '.txt'].includes(ext)) {
+                fileType = 'text';
+                summary = 'Document file';
+            }
+            
+            uploadedFiles.push({
+                id: fileId,
+                type: fileType,
+                filename: file.originalname,
+                size: file.size,
+                path: file.path,
+                date: currentDate,
+                summary: summary
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            files: uploadedFiles
+        });
+    } catch (error) {
+        console.error('Knowledge file upload error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
