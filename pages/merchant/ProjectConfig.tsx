@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../../components/Layout.tsx';
 import { ICONS } from '../../constants.tsx';
@@ -15,6 +15,7 @@ const ProjectConfig: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'info' | 'steps' | 'knowledge' | 'assistant' | 'qrcode' | 'usage'>('info');
   const [isParsing, setIsParsing] = useState(false);
   const [newRestriction, setNewRestriction] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!project) return <div>{t.projectNotFound}</div>;
 
@@ -29,26 +30,23 @@ const ProjectConfig: React.FC = () => {
     { id: 'qrcode', name: t.launchQr, icon: ICONS.QrCode },
   ] as const;
 
-  const simulateParsing = async () => {
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
     setIsParsing(true);
-    // Real implementation: Parse manual content and generate embeddings
-    // For MVP demonstration, we will generate embeddings for a sample text
     try {
-      // In a real app, this would iterate over project.knowledgeBase
-      const sampleText = "Power Connection: Plug in the Type-C cable. Ensure it clicks.";
-      const embedding = await import('../../services/aiService.ts').then(m => m.generateEmbedding(sampleText, project.config.provider));
-
-      // Store the embedding (Mocking the storage verification)
-      if (embedding) {
-        console.log("Generated Embedding for " + project.config.provider, embedding.slice(0, 5) + "...");
-      }
-
-      // 模拟添加知识库内容，支持多种格式
+      // In a real app, this would process the selected files
+      // For MVP demonstration, we will generate mock knowledge base content
       const mockKnowledgeBase = [
         {
           type: 'text' as const,
-          text: sampleText,
-          embedding: embedding
+          text: "Power Connection: Plug in the Type-C cable. Ensure it clicks.",
+          embedding: []
         },
         {
           type: 'image' as const,
@@ -66,11 +64,19 @@ const ProjectConfig: React.FC = () => {
       // 只更新知识库，不自动生成步骤
       updateProject(project.id, { knowledgeBase: mockKnowledgeBase });
     } catch (e) {
-      console.error("Parsing failed", e);
+      console.error("File processing failed", e);
     } finally {
       setIsParsing(false);
-      // 保持在知识库页面，不自动跳转到步骤页面
+      // 重置文件输入，允许选择相同的文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
+  };
+
+  const simulateParsing = async () => {
+    // 这个函数保留作为备用，或者在未来用于实际的文件解析
+    handleFileSelect();
   };
 
   const addRestriction = () => {
@@ -191,11 +197,19 @@ const ProjectConfig: React.FC = () => {
               
               {/* 知识库文件列表 */}
               <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.txt,.mp4,.jpg,.jpeg,.png"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
                 <div className="flex items-center justify-between mb-6">
                   <h4 className="font-bold text-gray-700">{t.knowledgeBase}</h4>
                   <button 
                     className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition-all"
-                    onClick={simulateParsing}
+                    onClick={handleFileSelect}
                   >
                     {t.selectFilesBtn}
                   </button>
@@ -208,9 +222,7 @@ const ProjectConfig: React.FC = () => {
                 </div>
                 
                 <p className="text-gray-400 max-w-md mx-auto mb-6 font-medium">
-                  知识库用于存储产品资料，包括说明书、图片和视频等。
-                  执行标准流程时，AI 会从知识库中读取相关资料进行细节判断。
-                  步骤配置在"步骤"标签页中进行，由商家手动制定标准流程。
+                  {t.knowledgeBaseDesc}
                 </p>
                 
                 {/* 模拟知识库文件列表 */}

@@ -92,10 +92,10 @@ const TextGuide: React.FC = () => {
           setCurrentStepIndex(prev => prev + 1);
           aiResponse = `${t.perfect} ${t.ttsNext} ${project?.steps[currentStepIndex + 1]?.name}`;
         } else {
-          aiResponse = `${t.perfect} 所有步骤已完成！`;
+          aiResponse = `${t.perfect} ${t.allStepsCompleted}`;
         }
       } else {
-        aiResponse = `关于 ${currentStep?.name}：${currentStep?.description}。\n\n目标状态：${currentStep?.targetState}。\n\n请按照说明操作，完成后输入"完成"或"next"进入下一步。`;
+        aiResponse = t.aboutStep.replace('{{step}}', currentStep?.name || '').replace('{{description}}', currentStep?.description || '').replace('{{targetState}}', currentStep?.targetState || '');
       }
 
       addMessage(aiResponse, false);
@@ -196,7 +196,7 @@ const TextGuide: React.FC = () => {
             disabled={!inputText.trim() || isTyping}
             className={`px-6 py-3 rounded-xl bg-blue-600 text-white font-bold transition-all ${(!inputText.trim() || isTyping) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700 active:scale-95'}`}
           >
-            {t.scanNow}
+            {t.analyzePhoto}
           </button>
         </div>
       </div>

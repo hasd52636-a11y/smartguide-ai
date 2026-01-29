@@ -223,7 +223,7 @@ const ClientGuide: React.FC = () => {
             </div>
           </div>
         ))}
-        {isProcessing && <div className="text-xs text-gray-400 text-center animate-pulse">AI is thinking...</div>}
+        {isProcessing && <div className="text-xs text-gray-400 text-center animate-pulse">{t.aiThinking}</div>}
       </div>
 
       <div className="p-4 bg-white border-t border-gray-100 flex items-center gap-3">
@@ -301,7 +301,7 @@ const ClientGuide: React.FC = () => {
           <div className="w-24 h-24 bg-gradient-to-tr from-blue-400 to-purple-500 rounded-full mx-auto mb-4 animate-bounce shadow-lg shadow-blue-500/50" />
           <p className="text-white font-bold">{project?.config.assistantName}</p>
           <div className={`mt-2 bg-gray-800 px-3 py-1 rounded-full text-xs text-blue-400 border border-blue-500/30 ${isProcessing ? 'opacity-100' : 'opacity-0'}`}>
-            Speaking...
+            {t.speaking}
           </div>
         </div>
       </div>
@@ -318,7 +318,7 @@ const ClientGuide: React.FC = () => {
             onMouseUp={() => { /* Stop Recording */ }}
             className="flex-1 bg-white text-black font-bold h-14 rounded-full flex items-center justify-center shadow-xl active:scale-95 transition-all"
           >
-            <ICONS.Mic className="w-6 h-6 mr-2" /> Hold to Speak
+            <ICONS.Mic className="w-6 h-6 mr-2" /> {t.holdToSpeak}
           </button>
           <button
             onClick={handleCapture}

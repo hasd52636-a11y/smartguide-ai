@@ -18,6 +18,7 @@ export const translations = {
     textVersionDesc: "Pure text-based interface with chat functionality. Works on all browsers and devices, including low-end phones.",
     videoVersion: "Video & Voice Version",
     videoVersionDesc: "Full-featured interface with video analysis, voice feedback, and text interaction. Requires modern browser and camera access.",
+    knowledgeBaseDesc: "Knowledge base stores product materials including manuals, images, and videos. During installation, AI will reference these materials for detailed guidance. Steps are configured manually in the 'Steps' tab.",
     dashboardTitle: "Workspace",
     createNewProject: "New Project",
     active: "Active",
@@ -107,7 +108,19 @@ export const translations = {
     voiceModeDesc: "Hands-free voice interaction",
     videoModeDesc: "Interactive video with Avatar",
     inputPlaceholder: "Type your question here...",
-    listening: "Listening..."
+    listening: "Listening...",
+    accountInfo: "Account Information",
+    loginNotice: "You are currently logged in to the testing environment.",
+    userIdentity: "User Identity",
+    role: "Role",
+    masterMerchant: "Master Merchant",
+    authSimplified: "Authentication and password management are simplified for this MVP version. Full multi-tenant security will be enabled in the Production (V2.0) release.",
+    aiThinking: "AI is thinking...",
+    speaking: "Speaking...",
+    holdToSpeak: "Hold to Speak",
+    allStepsCompleted: "All steps completed!",
+    aboutStep: "About {{step}}: {{description}}\n\nTarget State: {{targetState}}\n\nPlease follow the instructions, and enter \"next\" when finished to proceed to the next step.",
+    analyzePhoto: "Analyze"
   },
   [Language.ZH]: {
     appName: "智指助手 SmartGuide AI",
@@ -119,6 +132,7 @@ export const translations = {
     textVersionDesc: "纯文字界面，支持聊天功能。适用于所有浏览器和设备，包括低端手机。",
     videoVersion: "视频语音一体版",
     videoVersionDesc: "全功能界面，支持视频分析、语音反馈和文字交互。需要现代浏览器和摄像头访问权限。",
+    knowledgeBaseDesc: "知识库用于存储产品资料，包括说明书、图片和视频等。执行标准流程时，AI 会从知识库中读取相关资料进行细节判断。步骤配置在\"步骤\"标签页中进行，由商家手动制定标准流程。",
     dashboardTitle: "产品工作台",
     createNewProject: "创建新项目",
     active: "已启用",
@@ -216,6 +230,18 @@ export const translations = {
     voiceModeDesc: "语音机器人交互对话",
     videoModeDesc: "文字语音交互+视频机器",
     inputPlaceholder: "请输入您的问题...",
-    listening: "正在聆听..."
+    listening: "正在聆听...",
+    accountInfo: "账户信息",
+    loginNotice: "您当前已登录测试环境。",
+    userIdentity: "用户身份",
+    role: "角色",
+    masterMerchant: "主商家",
+    authSimplified: "本 MVP 版本简化了身份验证和密码管理。完整的多租户安全功能将在 Production (V2.0) 版本中启用。",
+    aiThinking: "AI 正在思考...",
+    speaking: "正在说话...",
+    holdToSpeak: "按住说话",
+    allStepsCompleted: "所有步骤已完成！",
+    aboutStep: "关于 {{step}}：{{description}}\n\n目标状态：{{targetState}}\n\n请按照说明操作，完成后输入\"完成\"或\"next\"进入下一步。",
+    analyzePhoto: "识别"
   }
 };
