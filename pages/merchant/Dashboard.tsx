@@ -62,12 +62,11 @@ const Dashboard: React.FC = () => {
         {projects.map(project => (
           <div 
             key={project.id}
-            onClick={() => navigate(`/project/${project.id}`)}
-            className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col"
+            className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col"
           >
             <div className="p-5 flex-1">
               <div className="flex items-start justify-between mb-3">
-                <div className="bg-blue-50 p-2.5 rounded-xl">
+                <div className="bg-blue-50 p-2.5 rounded-xl" onClick={() => navigate(`/project/${project.id}`)}>
                   <ICONS.Smartphone className="w-5 h-5 text-blue-600" />
                 </div>
                 <div className="flex items-center">
@@ -87,16 +86,18 @@ const Dashboard: React.FC = () => {
                   </label>
                 </div>
               </div>
-              <h3 className="font-bold text-gray-900 text-lg mb-1">{project.name}</h3>
-              <p className="text-gray-500 text-sm line-clamp-2">{project.description}</p>
+              <div onClick={() => navigate(`/project/${project.id}`)} className="cursor-pointer">
+                <h3 className="font-bold text-gray-900 text-lg mb-1">{project.name}</h3>
+                <p className="text-gray-500 text-sm line-clamp-2">{project.description}</p>
+              </div>
             </div>
             
-            <div className="border-t border-gray-100 p-5 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="border-t border-gray-100 p-5 flex items-center justify-between" onClick={() => navigate(`/project/${project.id}`)}>
+              <div className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
                 <ICONS.Database className="w-4 h-4" />
                 {project.steps.length} {t.stepsConfigured}
               </div>
-              <ICONS.ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500" />
+              <ICONS.ArrowRight className="w-4 h-4 text-gray-300 cursor-pointer" />
             </div>
           </div>
         ))}
