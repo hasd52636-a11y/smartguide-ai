@@ -48,7 +48,27 @@ const ProjectConfig: React.FC = () => {
         console.log("Generated Embedding for " + project.config.provider, embedding.slice(0, 5) + "...");
       }
 
-      updateProject(project.id, { steps: mockSteps });
+      // 模拟添加知识库内容，支持多种格式
+      const mockKnowledgeBase = [
+        {
+          type: 'text' as const,
+          text: sampleText,
+          embedding: embedding
+        },
+        {
+          type: 'image' as const,
+          url: 'https://via.placeholder.com/400x300?text=Product+Image',
+          thumbnail: 'https://via.placeholder.com/100x100?text=Thumbnail'
+        },
+        {
+          type: 'video' as const,
+          url: 'https://via.placeholder.com/640x360?text=Installation+Video',
+          thumbnail: 'https://via.placeholder.com/100x100?text=Video+Thumbnail',
+          duration: 120
+        }
+      ];
+
+      updateProject(project.id, { steps: mockSteps, knowledgeBase: mockKnowledgeBase });
     } catch (e) {
       console.error("Parsing failed", e);
     } finally {

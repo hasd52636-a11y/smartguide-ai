@@ -45,6 +45,14 @@ export const analyzeInstallationState = async (
   return await import('./zhipuService.ts').then(m => m.analyzeInstallationState(imageData, currentStep, systemPrompt, language));
 };
 
+export const chatWithAssistant = async (
+  messages: Array<{ role: string; content: string }>,
+  systemPrompt: string,
+  provider: LLMProvider = LLMProvider.ZHIPU
+): Promise<string> => {
+  return await import('./zhipuService.ts').then(m => m.chatWithAssistant(messages, systemPrompt));
+};
+
 const fallback = (lang: Language): AIResponse => ({
   isComplete: false,
   confidence: 0,

@@ -96,6 +96,38 @@ export const analyzeInstallationState = async (
 
 // ... image analysis code ...
 
+export const chatWithAssistant = async (
+  messages: Array<{ role: string; content: string }>,
+  systemPrompt: string
+): Promise<string> => {
+  const model = "glm-4-flash";
+
+  const formattedMessages = [
+    { role: "system", content: systemPrompt },
+    ...messages
+  ];
+
+  try {
+    const response = await fetch("/api/proxy/zhipu/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: model,
+        messages: formattedMessages,
+        temperature: 0.7,
+        stream: false
+      })
+    });
+
+    if (!response.ok) throw new Error(`Zhipu Chat Error: ${response.statusText}`);
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("Zhipu/GLM Chat Error:", error);
+    return "Sorry, I am having trouble connecting to the server.";
+  }
+};
+
 export const generateEmbedding = async (text: string): Promise<number[] | null> => {
   try {
     // Use backend proxy API instead of direct API call

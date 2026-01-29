@@ -4,6 +4,12 @@ export enum VoiceGender {
   FEMALE = 'female'
 }
 
+export enum GuideMode {
+  TEXT = 'text',
+  VOICE = 'voice',
+  VIDEO = 'video'
+}
+
 export enum Language {
   EN = 'en',
   ZH = 'zh'
@@ -52,7 +58,14 @@ export interface Project {
   status: 'active' | 'inactive';
   config: ProjectConfig;
   steps: InstallationStep[];
-  knowledgeBase: { text: string; embedding?: number[] }[];
+  knowledgeBase: Array<{
+    type: 'text' | 'image' | 'video';
+    text?: string;
+    url?: string;
+    embedding?: number[];
+    thumbnail?: string;
+    duration?: number;
+  }>;
   usage: UsageStats;
 }
 
@@ -60,4 +73,5 @@ export interface AuthState {
   phone: string | null;
   isLoggedIn: boolean;
   language: Language;
+  guideMode?: GuideMode;
 }

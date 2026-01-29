@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Project, AuthState, Language } from './types.ts';
+import { Project, AuthState, Language, GuideMode } from './types.ts';
 import { DEFAULT_PROJECTS } from './constants.tsx';
 import { translations } from './translations.ts';
 
@@ -13,6 +13,7 @@ interface StoreContextType {
   login: (identity?: string) => void;
   logout: () => void;
   setLanguage: (language: Language) => void;
+  setGuideMode: (mode: GuideMode) => void;
   addProject: (project: Project) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   trackUsage: (projectId: string, tokens: number) => void;
@@ -40,7 +41,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const [auth, setAuth] = useState<AuthState>(() => {
     const saved = localStorage.getItem(AUTH_KEY);
-    return saved ? JSON.parse(saved) : { phone: null, isLoggedIn: false, language: Language.ZH };
+    return saved ? JSON.parse(saved) : { phone: null, isLoggedIn: false, language: Language.ZH, guideMode: undefined };
   });
 
   useEffect(() => {
@@ -57,6 +58,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const setLanguage = (language: Language) => {
     setAuth(prev => ({ ...prev, language }));
+  };
+
+  const setGuideMode = (mode: GuideMode) => {
+    setAuth(prev => ({ ...prev, guideMode: mode }));
   };
 
   const addProject = (project: Project) => {
@@ -95,6 +100,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     login,
     logout,
     setLanguage,
+    setGuideMode,
     addProject,
     updateProject,
     trackUsage,
@@ -116,10 +122,11 @@ export const useStore = () => {
     // 返回默认值，确保应用不会崩溃
     return {
       projects: DEFAULT_PROJECTS,
-      auth: { phone: null, isLoggedIn: false, language: Language.ZH },
+      auth: { phone: null, isLoggedIn: false, language: Language.ZH, guideMode: undefined },
       login: () => {},
       logout: () => {},
       setLanguage: () => {},
+      setGuideMode: () => {},
       addProject: () => {},
       updateProject: () => {},
       trackUsage: () => {},

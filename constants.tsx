@@ -1,22 +1,25 @@
 
 import React from 'react';
-import { 
-  Wrench, 
-  LayoutDashboard, 
-  Settings, 
-  Database, 
-  QrCode, 
-  Camera, 
-  Mic, 
-  ChevronRight, 
-  CheckCircle2, 
+import {
+  Wrench,
+  LayoutDashboard,
+  Settings,
+  Database,
+  QrCode,
+  Camera,
+  Mic,
+  ChevronRight,
+  CheckCircle2,
   AlertCircle,
   Smartphone,
   Plus,
   ArrowRight,
   LogOut,
-  HelpCircle
+  HelpCircle,
+  MessageSquare,
+  Video
 } from 'lucide-react';
+
 
 export const ICONS = {
   Wrench,
@@ -33,8 +36,11 @@ export const ICONS = {
   Plus,
   ArrowRight,
   LogOut,
-  HelpCircle
+  HelpCircle,
+  MessageSquare,
+  Video
 };
+
 
 export const DEFAULT_PROJECTS: any[] = [
   {
