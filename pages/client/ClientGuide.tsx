@@ -264,33 +264,7 @@ const ClientGuide: React.FC = () => {
     </div>
   );
 
-  const renderVoiceMode = () => (
-    <div className="flex flex-col items-center justify-center h-full bg-gradient-to-b from-indigo-900 to-purple-900 text-white p-6">
-      <div className="flex-1 flex flex-col items-center justify-center w-full">
-        <div className="relative w-48 h-48 flex items-center justify-center">
-          <div className={`absolute inset-0 bg-blue-500 rounded-full blur-3xl opacity-30 ${isProcessing ? 'animate-pulse' : ''}`} />
-          <div className="w-32 h-32 bg-white/10 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center shadow-[0_0_50px_rgba(255,255,255,0.2)]">
-            <ICONS.Mic className="w-12 h-12 text-white" />
-          </div>
-        </div>
-        <h3 className="mt-8 text-xl font-bold">{isProcessing ? "Analyzing..." : t.voiceModeDesc}</h3>
-        <p className="text-white/50 text-sm mt-2">{t.listening}</p>
 
-        {/* Latest Response */}
-        <div className="mt-12 bg-white/10 p-6 rounded-3xl backdrop-blur max-w-sm text-center">
-          <p className="text-lg font-medium">
-            "{messages[messages.length - 1]?.content || t.ttsWelcome}"
-          </p>
-        </div>
-      </div>
-      <button
-        onClick={() => setGuideMode(GuideMode.TEXT)}
-        className="mb-8 flex items-center gap-2 text-white/60 hover:text-white"
-      >
-        <ICONS.MessageSquare className="w-4 h-4" /> {t.modeText}
-      </button>
-    </div>
-  );
 
   const renderVideoMode = () => (
     <div className="relative h-full bg-black">
@@ -336,28 +310,28 @@ const ClientGuide: React.FC = () => {
       {/* Top Navigation */}
       <div className="bg-white border-b border-gray-100 px-2 py-2 flex justify-between items-center z-20">
         <div className="flex bg-gray-100 p-1 rounded-xl w-full">
-          {[
-            { id: GuideMode.TEXT, icon: ICONS.MessageSquare, label: t.modeText },
-            { id: GuideMode.VOICE, icon: ICONS.Mic, label: t.modeVoice },
-            { id: GuideMode.VIDEO, icon: ICONS.Video, label: t.modeVideo },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setGuideMode(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${guideMode === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
-                }`}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
-              {tab.label}
-            </button>
-          ))}
+          {
+            [
+              { id: GuideMode.TEXT, icon: ICONS.MessageSquare, label: t.modeText },
+              { id: GuideMode.VIDEO, icon: ICONS.Video, label: t.modeVideo },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setGuideMode(tab.id)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${guideMode === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                  }`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            ))
+          }
         </div>
       </div>
 
       {/* Content Area */}
       <div className="flex-1 relative overflow-hidden">
         {guideMode === GuideMode.TEXT && renderTextMode()}
-        {guideMode === GuideMode.VOICE && renderVoiceMode()}
         {guideMode === GuideMode.VIDEO && renderVideoMode()}
       </div>
     </div>
