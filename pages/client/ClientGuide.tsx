@@ -32,6 +32,8 @@ const ClientGuide: React.FC = () => {
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [visualHints, setVisualHints] = useState<VisualHint[]>([]);
+  const [failureCount, setFailureCount] = useState(0);
+  const [isStuckMode, setIsStuckMode] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -167,15 +169,37 @@ const ClientGuide: React.FC = () => {
     );
 
     if (result) {
-      setMessages(prev => [...prev, { role: 'assistant', content: result.feedback }]);
-      speak(result.feedback);
-      if (result.isComplete && currentStepIndex < (project?.steps.length || 0) - 1) {
-        setTimeout(() => {
-          setCurrentStepIndex(prev => prev + 1);
-          const nextMsg = `${t.ttsNext} ${project?.steps[currentStepIndex + 1].name}`;
-          setMessages(prev => [...prev, { role: 'assistant', content: nextMsg }]);
-          speak(nextMsg);
-        }, 2000);
+      // 检查置信度
+      if (result.confidence < 80) {
+        const lowConfidenceMsg = t.lowConfidence;
+        setMessages(prev => [...prev, { role: 'assistant', content: lowConfidenceMsg }]);
+        speak(lowConfidenceMsg);
+        setFailureCount(prev => prev + 1);
+        // 连续失败时进入诊断模式
+        if (failureCount >= 2) {
+          setIsStuckMode(true);
+        }
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: result.feedback }]);
+        speak(result.feedback);
+        if (result.isComplete) {
+          setIsStuckMode(false);
+          setFailureCount(0);
+          if (currentStepIndex < (project?.steps.length || 0) - 1) {
+            setTimeout(() => {
+              setCurrentStepIndex(prev => prev + 1);
+              const nextMsg = `${t.ttsNext} ${project?.steps[currentStepIndex + 1].name}`;
+              setMessages(prev => [...prev, { role: 'assistant', content: nextMsg }]);
+              speak(nextMsg);
+            }, 2000);
+          }
+        } else {
+          setFailureCount(prev => prev + 1);
+          // 连续失败时进入诊断模式
+          if (failureCount >= 2) {
+            setIsStuckMode(true);
+          }
+        }
       }
     }
 
