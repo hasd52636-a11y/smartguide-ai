@@ -91,6 +91,28 @@ app.post('/api/proxy/zhipu/chat', async (req, res) => {
     }
 });
 
+// Zhipu Embeddings Proxy
+app.post('/api/proxy/zhipu/embeddings', async (req, res) => {
+    if (!API_KEY_ZHIPU) return res.status(500).json({ error: "Server missing Zhipu API Key" });
+
+    try {
+        const response = await fetch("https://open.bigmodel.cn/api/paas/v4/embeddings", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY_ZHIPU}`
+            },
+            body: JSON.stringify(req.body)
+        });
+
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        console.error("Zhipu Embeddings Proxy Error", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Fallback for SPA (Express 5 compatible)
 app.get(/(.*)/, (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));

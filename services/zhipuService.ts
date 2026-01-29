@@ -128,17 +128,18 @@ export const chatWithAssistant = async (
   }
 };
 
-export const generateEmbedding = async (text: string): Promise<number[] | null> => {
+export const generateEmbedding = async (text: string, dimensions: number = 1024): Promise<number[] | null> => {
   try {
-    // Use backend proxy API instead of direct API call
-    const response = await fetch("/api/proxy/zhipu/chat", {
+    // Use Embedding-3 model with custom dimensions
+    const response = await fetch("/api/proxy/zhipu/embeddings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "embedding-2",
-        input: text
+        model: "embedding-3",
+        input: text,
+        dimensions: dimensions
       })
     });
 

@@ -28,10 +28,11 @@ export const generateSpeech = async (text: string) => {
 
 export const generateEmbedding = async (
   text: string,
-  provider: LLMProvider = LLMProvider.ZHIPU
+  provider: LLMProvider = LLMProvider.ZHIPU,
+  dimensions: number = 1024
 ): Promise<number[] | null> => {
   // 只使用智谱 AI 进行嵌入生成
-  return await import('./zhipuService.ts').then(m => m.generateEmbedding(text));
+  return await import('./zhipuService.ts').then(m => m.generateEmbedding(text, dimensions));
 };
 
 export const analyzeInstallationState = async (

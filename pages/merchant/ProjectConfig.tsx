@@ -307,6 +307,51 @@ const ProjectConfig: React.FC = () => {
                     <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">{t.assistantName}</label>
                     <input className="w-full px-4 py-3 rounded-xl bg-gray-50 font-bold outline-none" value={project.config.assistantName} onChange={(e) => updateProject(project.id, { config: { ...project.config, assistantName: e.target.value } })} />
                   </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">品牌Logo</label>
+                    <div className="space-y-4">
+                      {project.config.brandLogo ? (
+                        <div className="relative">
+                          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-center gap-4">
+                            <img src={project.config.brandLogo} alt="Brand Logo" className="w-16 h-16 object-contain" />
+                            <div className="flex-1">
+                              <div className="font-bold text-sm">已上传Logo</div>
+                              <div className="text-xs text-gray-400">点击下方按钮更换</div>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => updateProject(project.id, { config: { ...project.config, brandLogo: undefined } })} 
+                            className="absolute top-4 right-4 p-2 text-gray-300 hover:text-red-500 transition-colors"
+                          >
+                            <ICONS.LogOut className="w-4 h-4 rotate-45" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer" onClick={() => document.getElementById('logo-upload')?.click()}>
+                          <ICONS.Camera className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+                          <div className="font-medium text-gray-600 mb-1">上传品牌Logo</div>
+                          <div className="text-xs text-gray-400">支持 JPG, PNG, SVG 格式</div>
+                          <input 
+                            id="logo-upload" 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  const base64 = event.target?.result as string;
+                                  updateProject(project.id, { config: { ...project.config, brandLogo: base64 } });
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">{t.llmProvider}</label>
