@@ -38,11 +38,6 @@ const ProjectConfig: React.FC = () => {
       const sampleText = "Power Connection: Plug in the Type-C cable. Ensure it clicks.";
       const embedding = await import('../../services/aiService.ts').then(m => m.generateEmbedding(sampleText, project.config.provider));
 
-      const mockSteps: InstallationStep[] = [
-        { id: 'p1', name: 'Power Connection', description: 'Plug in the Type-C cable.', targetState: 'Cable seated correctly.', checkpoints: [] },
-        { id: 'p2', name: 'Filter Check', description: 'Insert the cartridge.', targetState: 'Blue ring invisible.', checkpoints: [] }
-      ];
-
       // Store the embedding (Mocking the storage verification)
       if (embedding) {
         console.log("Generated Embedding for " + project.config.provider, embedding.slice(0, 5) + "...");
@@ -68,12 +63,13 @@ const ProjectConfig: React.FC = () => {
         }
       ];
 
-      updateProject(project.id, { steps: mockSteps, knowledgeBase: mockKnowledgeBase });
+      // 只更新知识库，不自动生成步骤
+      updateProject(project.id, { knowledgeBase: mockKnowledgeBase });
     } catch (e) {
       console.error("Parsing failed", e);
     } finally {
       setIsParsing(false);
-      setActiveTab('steps');
+      // 保持在知识库页面，不自动跳转到步骤页面
     }
   };
 
@@ -196,7 +192,7 @@ const ProjectConfig: React.FC = () => {
               {/* 知识库文件列表 */}
               <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
                 <div className="flex items-center justify-between mb-6">
-                  <h4 className="font-bold text-gray-700">{t.uploadManuals}</h4>
+                  <h4 className="font-bold text-gray-700">{t.knowledgeBase}</h4>
                   <button 
                     className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition-all"
                     onClick={simulateParsing}
@@ -211,7 +207,11 @@ const ProjectConfig: React.FC = () => {
                   <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2 text-xs font-bold text-gray-500"><ICONS.Camera className="w-4 h-4" /> {t.docVideo}</div>
                 </div>
                 
-                <p className="text-gray-400 max-w-md mx-auto mb-6 font-medium">{t.parsingDesc}</p>
+                <p className="text-gray-400 max-w-md mx-auto mb-6 font-medium">
+                  知识库用于存储产品资料，包括说明书、图片和视频等。
+                  执行标准流程时，AI 会从知识库中读取相关资料进行细节判断。
+                  步骤配置在"步骤"标签页中进行，由商家手动制定标准流程。
+                </p>
                 
                 {/* 模拟知识库文件列表 */}
                 <div className="space-y-3">
