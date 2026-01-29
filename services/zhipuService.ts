@@ -1,19 +1,149 @@
 
 import { Language } from '../types.ts';
 
-// 获取当前项目的API密钥
-const getApiKey = (projectId?: string): string => {
-  try {
-    const projects = JSON.parse(localStorage.getItem('smartguide_projects') || '[]');
-    if (projectId) {
-      const project = projects.find((p: any) => p.id === projectId);
-      return project?.config?.zhipuApiKey || '';
+export type ZhipuModel = 
+  | 'glm-4.5-flash'      // 深度思考（普惠）
+  | 'glm-4v-flash'       // 视觉理解（普惠）
+  | 'glm-4-flash'        // 文本生成（普惠）
+  | 'cogvideox-flash'    // 视频生成（普惠）
+  | 'cogview-3-flash'    // 图像生成（普惠）
+  | 'glm-4.6v'           // 高端视觉理解
+  | 'cogvideox-3'        // 高端视频生成
+  | 'cogview-3';         // 高端图像生成
+
+// 模型配置管理
+class ModelConfigManager {
+  private static instance: ModelConfigManager;
+  private modelConfig: any;
+
+  private constructor() {
+    // 从本地存储加载模型配置
+    const saved = localStorage.getItem('zhipu_models_config');
+    this.modelConfig = saved ? JSON.parse(saved) : {
+      text: 'glm-4-flash',
+      thinking: 'glm-4.5-flash',
+      vision: 'glm-4v-flash',
+      video: 'cogvideox-flash',
+      image: 'cogview-3-flash'
+    };
+  }
+
+  public static getInstance(): ModelConfigManager {
+    if (!ModelConfigManager.instance) {
+      ModelConfigManager.instance = new ModelConfigManager();
     }
-    // 如果没有指定项目ID，返回第一个项目的API密钥
-    return projects[0]?.config?.zhipuApiKey || '';
+    return ModelConfigManager.instance;
+  }
+
+  // 获取指定类别的模型
+  public getModel(category: 'text' | 'thinking' | 'vision' | 'video' | 'image'): string {
+    return this.modelConfig[category] || {
+      text: 'glm-4-flash',
+      thinking: 'glm-4.5-flash',
+      vision: 'glm-4v-flash',
+      video: 'cogvideox-flash',
+      image: 'cogview-3-flash'
+    }[category];
+  }
+
+  // 保存模型配置
+  public saveModelConfig(config: any): void {
+    this.modelConfig = { ...this.modelConfig, ...config };
+    localStorage.setItem('zhipu_models_config', JSON.stringify(this.modelConfig));
+  }
+
+  // 获取所有模型配置
+  public getModelConfig(): any {
+    return this.modelConfig;
+  }
+}
+
+// API密钥管理
+class ApiKeyManager {
+  private static instance: ApiKeyManager;
+  private cachedApiKey: string | null = null;
+  private cacheExpiry: number = 0;
+
+  private constructor() {}
+
+  public static getInstance(): ApiKeyManager {
+    if (!ApiKeyManager.instance) {
+      ApiKeyManager.instance = new ApiKeyManager();
+    }
+    return ApiKeyManager.instance;
+  }
+
+  // 获取当前项目的API密钥
+  public getApiKey(projectId?: string): string {
+    // 检查缓存是否有效（5分钟内）
+    const now = Date.now();
+    if (this.cachedApiKey && now < this.cacheExpiry) {
+      return this.cachedApiKey;
+    }
+
+    try {
+      const projects = JSON.parse(localStorage.getItem('smartguide_projects') || '[]');
+      let apiKey = '';
+
+      if (projectId) {
+        const project = projects.find((p: any) => p.id === projectId);
+        apiKey = project?.config?.zhipuApiKey || '';
+      } else {
+        // 如果没有指定项目ID，返回第一个项目的API密钥
+        apiKey = projects[0]?.config?.zhipuApiKey || '';
+      }
+
+      // 更新缓存
+      this.cachedApiKey = apiKey;
+      this.cacheExpiry = now + 5 * 60 * 1000; // 5分钟缓存
+
+      return apiKey;
+    } catch (error) {
+      console.error('Error getting API key:', error);
+      return '';
+    }
+  }
+
+  // 清除缓存
+  public clearCache(): void {
+    this.cachedApiKey = null;
+    this.cacheExpiry = 0;
+  }
+}
+
+// 生成唯一的请求ID
+const generateRequestId = (): string => {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+};
+
+// 通用API请求函数
+const fetchApi = async (endpoint: string, options: RequestInit): Promise<Response> => {
+  const apiKeyManager = ApiKeyManager.getInstance();
+  const apiKey = apiKeyManager.getApiKey();
+
+  // 设置默认请求头
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-zhipu-api-key': apiKey,
+    ...(options.headers || {})
+  };
+
+  // 添加超时处理
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+
+  try {
+    const response = await fetch(endpoint, {
+      ...options,
+      headers,
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+    return response;
   } catch (error) {
-    console.error('Error getting API key:', error);
-    return '';
+    clearTimeout(timeoutId);
+    throw error;
   }
 };
 
@@ -25,7 +155,8 @@ export const analyzeInstallationState = async (
   language: Language = Language.EN,
   knowledgeBase: any[] = []
 ) => {
-  const model = "glm-4v-flash"; // Use Flash for speed/cost, or glm-4v for quality
+  const modelConfigManager = ModelConfigManager.getInstance();
+  const model = modelConfigManager.getModel('vision'); // 使用配置的视觉模型
 
   // 构建知识库参考信息
   let knowledgeBaseReference = "";
@@ -79,42 +210,60 @@ export const analyzeInstallationState = async (
   ];
 
   try {
-    // Use backend proxy API instead of direct API call
-    const apiKey = getApiKey();
-    const response = await fetch("/api/proxy/zhipu/chat", {
+    console.log(`[ZhipuService] Analyzing installation state with ${model}...`);
+    
+    const requestId = generateRequestId();
+    
+    const response = await fetchApi("/api/proxy/zhipu/chat", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-zhipu-api-key": apiKey
-      },
       body: JSON.stringify({
         model: model,
         messages: messages,
         temperature: 0.1,
         max_tokens: 1024,
         top_p: 0.7,
-        stream: false
+        stream: false,
+        request_id: requestId
       })
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[ZhipuService] Analysis API error: ${response.status} - ${errorText}`);
       throw new Error(`Zhipu API Error: ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log(`[ZhipuService] Analysis API response received`);
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      throw new Error(`Invalid API response format: ${JSON.stringify(data)}`);
+    }
+
     const content = data.choices[0].message.content;
 
     // Cleanup code blocks if present
     const jsonStr = content.replace(/```json/g, '').replace(/```/g, '').trim();
-    const result = JSON.parse(jsonStr);
-
-    return {
-      ...result,
-      tokensUsed: data.usage?.total_tokens || 0
-    };
+    
+    try {
+      const result = JSON.parse(jsonStr);
+      
+      console.log(`[ZhipuService] Analysis completed successfully`);
+      
+      return {
+        ...result,
+        tokensUsed: data.usage?.total_tokens || 0
+      };
+    } catch (jsonError) {
+      console.error(`[ZhipuService] JSON parsing error:`, jsonError);
+      console.error(`[ZhipuService] Raw content:`, content);
+      throw new Error(`Failed to parse API response: ${jsonError.message}`);
+    }
 
   } catch (error) {
-    console.error("Zhipu/GLM Analysis Error:", error);
+    console.error("[ZhipuService] Analysis Error:", error);
+    console.error("[ZhipuService] Error stack:", error.stack);
+    
     return {
       isComplete: false,
       confidence: 0,
@@ -129,9 +278,11 @@ export const analyzeInstallationState = async (
 
 export const chatWithAssistant = async (
   messages: Array<{ role: string; content: string }>,
-  systemPrompt: string
+  systemPrompt: string,
+  useThinking: boolean = false
 ): Promise<string> => {
-  const model = "glm-4-flash";
+  const modelConfigManager = ModelConfigManager.getInstance();
+  const model = useThinking ? modelConfigManager.getModel('thinking') : modelConfigManager.getModel('text');
 
   const formattedMessages = [
     { role: "system", content: systemPrompt },
@@ -139,26 +290,37 @@ export const chatWithAssistant = async (
   ];
 
   try {
-    const apiKey = getApiKey();
-    const response = await fetch("/api/proxy/zhipu/chat", {
+    console.log(`[ZhipuService] Chat with ${model}...`);
+    
+    const requestId = generateRequestId();
+    
+    const response = await fetchApi("/api/proxy/zhipu/chat", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-zhipu-api-key": apiKey
-      },
       body: JSON.stringify({
         model: model,
         messages: formattedMessages,
         temperature: 0.7,
-        stream: false
+        stream: false,
+        request_id: requestId
       })
     });
 
-    if (!response.ok) throw new Error(`Zhipu Chat Error: ${response.statusText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[ZhipuService] Chat API error: ${response.status} - ${errorText}`);
+      throw new Error(`Zhipu Chat Error: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log(`[ZhipuService] Chat API response received`);
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      throw new Error(`Invalid chat API response format: ${JSON.stringify(data)}`);
+    }
+    
     return data.choices[0].message.content;
   } catch (error) {
-    console.error("Zhipu/GLM Chat Error:", error);
+    console.error("[ZhipuService] Chat Error:", error);
     return "Sorry, I am having trouble connecting to the server.";
   }
 };
@@ -166,13 +328,8 @@ export const chatWithAssistant = async (
 export const generateEmbedding = async (text: string, dimensions: number = 1024): Promise<number[] | null> => {
   try {
     // Use Embedding-3 model with custom dimensions
-    const apiKey = getApiKey();
-    const response = await fetch("/api/proxy/zhipu/embeddings", {
+    const response = await fetchApi("/api/proxy/zhipu/embeddings", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-zhipu-api-key": apiKey
-      },
       body: JSON.stringify({
         model: "embedding-3",
         input: text,
@@ -217,13 +374,8 @@ export const cloneVoice = async (
   requestId?: string
 ) => {
   try {
-    const apiKey = getApiKey();
-    const response = await fetch("/api/proxy/zhipu/voice/clone", {
+    const response = await fetchApi("/api/proxy/zhipu/voice/clone", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-zhipu-api-key": apiKey
-      },
       body: JSON.stringify({
         model: "glm-tts-clone",
         voice_name: voiceName,
@@ -262,11 +414,8 @@ export const getVoiceList = async (voiceName?: string, voiceType?: 'OFFICIAL' | 
       url += `?${params.toString()}`;
     }
 
-    const apiKey = getApiKey();
-    const response = await fetch(url, {
-      headers: {
-        "x-zhipu-api-key": apiKey
-      }
+    const response = await fetchApi(url, {
+      method: "GET"
     });
     const data = await response.json();
     
@@ -285,31 +434,45 @@ export const getVoiceList = async (voiceName?: string, voiceType?: 'OFFICIAL' | 
 // 删除音色
 export const deleteVoice = async (voice: string, requestId?: string) => {
   try {
-    const apiKey = getApiKey();
-    const response = await fetch("/api/proxy/zhipu/voice/delete", {
+    console.log(`[ZhipuService] Deleting voice: ${voice}`);
+    
+    const response = await fetchApi("/api/proxy/zhipu/voice/delete", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-zhipu-api-key": apiKey
-      },
       body: JSON.stringify({
         voice: voice,
-        request_id: requestId
+        request_id: requestId || generateRequestId()
       })
     });
 
     const data = await response.json();
     
     if (data.error) {
-      console.error("Delete Voice Error:", data.error.message);
+      console.error("[ZhipuService] Delete Voice Error:", data.error.message);
       return null;
     }
     
+    console.log(`[ZhipuService] Voice deleted successfully: ${voice}`);
     return data;
   } catch (error) {
-    console.error("Delete Voice Error", error);
+    console.error("[ZhipuService] Delete Voice Error", error);
     return null;
   }
+};
+
+// 模型配置管理函数
+export const getModelConfig = () => {
+  const modelConfigManager = ModelConfigManager.getInstance();
+  return modelConfigManager.getModelConfig();
+};
+
+export const saveModelConfig = (config: any) => {
+  const modelConfigManager = ModelConfigManager.getInstance();
+  modelConfigManager.saveModelConfig(config);
+};
+
+export const getModel = (category: 'text' | 'thinking' | 'vision' | 'video' | 'image') => {
+  const modelConfigManager = ModelConfigManager.getInstance();
+  return modelConfigManager.getModel(category);
 };
 
 // 文本转语音（使用智谱AI）
@@ -319,13 +482,8 @@ export const textToSpeech = async (
   responseFormat: string = "wav"
 ) => {
   try {
-    const apiKey = getApiKey();
-    const response = await fetch("/api/proxy/zhipu/speech", {
+    const response = await fetchApi("/api/proxy/zhipu/speech", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-zhipu-api-key": apiKey
-      },
       body: JSON.stringify({
         model: "glm-tts",
         input: text,
