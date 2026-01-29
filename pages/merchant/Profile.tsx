@@ -5,7 +5,8 @@ import { useStore } from '../../store.ts';
 import { ICONS } from '../../constants.tsx';
 
 const Profile: React.FC = () => {
-  const { t, auth } = useStore();
+  const { t, auth, login } = useStore();
+  const [apiKey, setApiKey] = useState('');
   const [apiStatus, setApiStatus] = useState<{
     zhipu: { status: 'checking' | 'online' | 'offline'; error?: string };
     gemini: { status: 'checking' | 'online' | 'offline'; error?: string };
@@ -72,30 +73,49 @@ const Profile: React.FC = () => {
     }
   };
 
+  const handleSaveApiKey = () => {
+    // 保存API密钥到本地存储
+    localStorage.setItem('smartguide_api_key', apiKey);
+    // 更新认证状态
+    login(auth.phone || 'Administrator');
+    alert('API密钥保存成功');
+  };
+
+  useEffect(() => {
+    // 从本地存储加载API密钥
+    const savedApiKey = localStorage.getItem('smartguide_api_key');
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
+  }, []);
+
   return (
     <Layout title={t.profile}>
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
         <div className="space-y-8">
+          {/* API设置（主要显示） */}
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">{t.accountInfo}</h3>
-            <p className="text-gray-500 text-sm">{t.loginNotice}</p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 border-t border-gray-100 pt-8">
-            <div className="bg-gray-50 p-4 rounded-xl">
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.userIdentity}</label>
-              <p className="text-gray-900 font-semibold">{auth.phone || 'Administrator'}</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">API设置</h3>
+            <div className="bg-gray-50 p-6 rounded-2xl mb-6">
+              <label className="block text-sm font-bold text-gray-700 mb-3">智谱AI API密钥</label>
+              <input
+                type="text"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="请输入智谱AI API密钥"
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-400 mt-2">API密钥将保存在浏览器本地存储中</p>
+              <button
+                onClick={handleSaveApiKey}
+                className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition-colors"
+              >
+                保存API密钥
+              </button>
             </div>
-            
-            <div className="bg-gray-50 p-4 rounded-xl">
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t.role}</label>
-              <p className="text-gray-900 font-semibold">{t.masterMerchant}</p>
-            </div>
-          </div>
 
-          {/* API状态显示 */}
-          <div className="border-t border-gray-100 pt-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">API状态</h3>
+            {/* API状态显示 */}
+            <h4 className="text-xl font-bold text-gray-900 mb-4">API状态</h4>
             <div className="space-y-4">
               <div className="bg-gray-50 p-4 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
@@ -132,7 +152,23 @@ const Profile: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl">
+          {/* 账户信息（缩小显示） */}
+          <div className="border-t border-gray-100 pt-6">
+            <h4 className="text-sm font-bold text-gray-600 mb-3">账户信息</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-50 p-3 rounded-xl">
+                <label className="block text-xs text-gray-500 mb-1">{t.userIdentity}</label>
+                <p className="text-sm text-gray-900">{auth.phone || 'Administrator'}</p>
+              </div>
+              
+              <div className="bg-gray-50 p-3 rounded-xl">
+                <label className="block text-xs text-gray-500 mb-1">{t.role}</label>
+                <p className="text-sm text-gray-900">{t.masterMerchant}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl">
             <p className="text-blue-700 text-sm font-medium">
               {t.authSimplified}
             </p>

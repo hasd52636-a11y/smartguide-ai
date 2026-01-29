@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { ICONS } from '../../constants.tsx';
 import { useStore } from '../../store.ts';
 import { analyzeInstallationState } from '../../services/aiService.ts';
+import { generateSpeech } from '../../services/zhipuService.ts';
 import { Language, TTSEngine, VoiceGender, GuideMode } from '../../types.ts';
 import RealtimeService from '../../services/RealtimeService.ts';
 import AudioProcessor from '../../services/AudioProcessor.ts';
@@ -85,9 +86,8 @@ const ClientGuide: React.FC = () => {
       audioPlayerRef.current = audioPlayer;
       
       // Create realtime service with API key and system prompt
-      // Note: In production, this should come from a secure configuration
-      // For now, use a placeholder that can be easily replaced
-      const apiKey = process.env.REACT_APP_GLM_REALTIME_API_KEY || 'your-api-key-here';
+      // Get API key from localStorage
+      const apiKey = localStorage.getItem('smartguide_api_key') || 'a75d46768b0f45dc90a5969077ffc8d9.dT0t2tku3hZGfYkk';
       const systemPrompt = project?.config.systemPrompt || '';
       const realtimeService = new RealtimeService(apiKey, systemPrompt);
       realtimeServiceRef.current = realtimeService;
@@ -344,49 +344,66 @@ const ClientGuide: React.FC = () => {
     if (!project) return;
     
     try {
-      // 检查浏览器是否支持语音合成
-      if (!('speechSynthesis' in window)) {
-        console.log('Browser does not support speech synthesis');
+      // 首先尝试使用智谱AI的语音服务
+      const selectedVoice = project.config.voice || 'tongtong';
+      const audioUrl = await generateSpeech(text, selectedVoice);
+      
+      if (audioUrl) {
+        // 使用智谱AI生成的语音
+        const audio = new Audio(audioUrl);
+        audio.play().catch(error => {
+          console.error('Error playing audio:', error);
+          // 播放失败时使用浏览器内置TTS作为备选
+          useBrowserTTS(text);
+        });
+        console.log('Using Zhipu AI TTS:', text);
         return;
       }
       
-      const { ttsEngine, voiceGender } = project.config;
-
-      if (ttsEngine === TTSEngine.SYSTEM) {
-        // 确保语音引擎已加载
-        let voices = window.speechSynthesis.getVoices();
-        if (voices.length === 0) {
-          // 延迟重试，等待语音引擎加载
-          setTimeout(() => speak(text), 100);
-          return;
-        }
-        
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = auth.language === Language.ZH ? 'zh-CN' : 'en-US';
-        utterance.volume = 1.0;
-        utterance.rate = 1.0;
-        utterance.pitch = voiceGender === VoiceGender.FEMALE ? 1.1 : 0.9;
-        
-        // 选择合适的语音
-        const targetVoice = voices.find(v => 
-          (v.name.includes('Xiaoxiao') || v.name.includes('Yunxi') || v.lang.startsWith(utterance.lang))
-        );
-        if (targetVoice) {
-          utterance.voice = targetVoice;
-        }
-        
-        // 播放语音
-        window.speechSynthesis.speak(utterance);
-        console.log('Speech synthesis started:', text);
-        return;
-      }
-      
-      // 非系统 TTS 引擎 - 保持原有逻辑
-      console.log('Using non-system TTS engine');
+      // 如果智谱AI语音服务失败，使用浏览器内置TTS
+      useBrowserTTS(text);
     } catch (error) {
       console.error('Speech error:', error);
       // 确保即使出错也不会影响其他功能
+      // 出错时使用浏览器内置TTS作为备选
+      useBrowserTTS(text);
     }
+  };
+  
+  const useBrowserTTS = (text: string) => {
+    // 检查浏览器是否支持语音合成
+    if (!('speechSynthesis' in window)) {
+      console.log('Browser does not support speech synthesis');
+      return;
+    }
+    
+    const { voiceGender } = project?.config || {};
+
+    // 确保语音引擎已加载
+    let voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      // 延迟重试，等待语音引擎加载
+      setTimeout(() => useBrowserTTS(text), 100);
+      return;
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = auth.language === Language.ZH ? 'zh-CN' : 'en-US';
+    utterance.volume = 1.0;
+    utterance.rate = 1.0;
+    utterance.pitch = voiceGender === VoiceGender.FEMALE ? 1.1 : 0.9;
+    
+    // 选择合适的语音
+    const targetVoice = voices.find(v => 
+      (v.name.includes('Xiaoxiao') || v.name.includes('Yunxi') || v.lang.startsWith(utterance.lang))
+    );
+    if (targetVoice) {
+      utterance.voice = targetVoice;
+    }
+    
+    // 播放语音
+    window.speechSynthesis.speak(utterance);
+    console.log('Using browser TTS:', text);
   };
 
   const handleSendMessage = async () => {

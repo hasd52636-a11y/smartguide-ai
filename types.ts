@@ -78,4 +78,5 @@ export interface AuthState {
   isLoggedIn: boolean;
   language: Language;
   guideMode?: GuideMode;
+  apiKey?: string; // 用户在浏览器中输入的API密钥
 }

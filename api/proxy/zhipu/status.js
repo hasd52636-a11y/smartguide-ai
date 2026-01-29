@@ -1,6 +1,7 @@
-const API_KEY_ZHIPU = process.env.ZHIPU_API_KEY || "a75d46768b0f45dc90a5969077ffc8d9.dT0t2tku3hZGfYkk";
-
 export default async function handler(req, res) {
+  // 优先使用请求中的API密钥，其次使用环境变量
+  const API_KEY_ZHIPU = req.headers['x-zhipu-api-key'] || process.env.ZHIPU_API_KEY;
+
   if (!API_KEY_ZHIPU) {
     return res.status(200).json({ ok: false, error: "Server missing Zhipu API Key" });
   }

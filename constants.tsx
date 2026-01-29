@@ -17,7 +17,10 @@ import {
   LogOut,
   HelpCircle,
   MessageSquare,
-  Video
+  Video,
+  Trash,
+  Volume2,
+  Clock
 } from 'lucide-react';
 
 
@@ -38,7 +41,10 @@ export const ICONS = {
   LogOut,
   HelpCircle,
   MessageSquare,
-  Video
+  Video,
+  Trash,
+  Volume2,
+  Clock
 };
 
 

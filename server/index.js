@@ -113,6 +113,111 @@ app.post('/api/proxy/zhipu/embeddings', async (req, res) => {
     }
 });
 
+// Zhipu Text to Speech Proxy
+app.post('/api/proxy/zhipu/speech', async (req, res) => {
+    if (!API_KEY_ZHIPU) return res.status(500).json({ error: "Server missing Zhipu API Key" });
+
+    try {
+        const response = await fetch("https://open.bigmodel.cn/api/paas/v4/audio/speech", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY_ZHIPU}`
+            },
+            body: JSON.stringify(req.body)
+        });
+
+        if (response.ok) {
+            // 处理二进制音频响应
+            const audioBuffer = await response.arrayBuffer();
+            res.setHeader('Content-Type', 'audio/wav');
+            res.send(Buffer.from(audioBuffer));
+        } else {
+            const errorData = await response.json();
+            res.status(500).json({ error: errorData.error?.message || "API request failed" });
+        }
+    } catch (e) {
+        console.error("Zhipu TTS Proxy Error", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Zhipu Voice Clone Proxy
+app.post('/api/proxy/zhipu/voice/clone', async (req, res) => {
+    if (!API_KEY_ZHIPU) return res.status(500).json({ error: "Server missing Zhipu API Key" });
+
+    try {
+        const response = await fetch("https://open.bigmodel.cn/api/paas/v4/voice/clone", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY_ZHIPU}`
+            },
+            body: JSON.stringify(req.body)
+        });
+
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        console.error("Zhipu Voice Clone Proxy Error", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Zhipu Voice List Proxy
+app.get('/api/proxy/zhipu/voice/list', async (req, res) => {
+    if (!API_KEY_ZHIPU) return res.status(500).json({ error: "Server missing Zhipu API Key" });
+
+    try {
+        const { voiceName, voiceType } = req.query;
+        let url = "https://open.bigmodel.cn/api/paas/v4/voice/list";
+        
+        // 构建查询参数
+        const params = new URLSearchParams();
+        if (voiceName) params.append('voiceName', voiceName);
+        if (voiceType) params.append('voiceType', voiceType);
+        
+        if (params.toString()) {
+            url += `?${params.toString()}`;
+        }
+
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${API_KEY_ZHIPU}`
+            }
+        });
+
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        console.error("Zhipu Voice List Proxy Error", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Zhipu Voice Delete Proxy
+app.post('/api/proxy/zhipu/voice/delete', async (req, res) => {
+    if (!API_KEY_ZHIPU) return res.status(500).json({ error: "Server missing Zhipu API Key" });
+
+    try {
+        const response = await fetch("https://open.bigmodel.cn/api/paas/v4/voice/delete", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY_ZHIPU}`
+            },
+            body: JSON.stringify(req.body)
+        });
+
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        console.error("Zhipu Voice Delete Proxy Error", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // API状态检查端点
 app.get('/api/proxy/zhipu/status', async (req, res) => {
     if (!API_KEY_ZHIPU) return res.json({ ok: false, error: "Server missing Zhipu API Key" });

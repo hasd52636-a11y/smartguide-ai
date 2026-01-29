@@ -1,6 +1,22 @@
 
 import { Language } from '../types.ts';
 
+// 获取当前项目的API密钥
+const getApiKey = (projectId?: string): string => {
+  try {
+    const projects = JSON.parse(localStorage.getItem('smartguide_projects') || '[]');
+    if (projectId) {
+      const project = projects.find((p: any) => p.id === projectId);
+      return project?.config?.zhipuApiKey || '';
+    }
+    // 如果没有指定项目ID，返回第一个项目的API密钥
+    return projects[0]?.config?.zhipuApiKey || '';
+  } catch (error) {
+    console.error('Error getting API key:', error);
+    return '';
+  }
+};
+
 // Using the OpenAI-compatible endpoint for Zhipu GLM-4V via backend proxy
 export const analyzeInstallationState = async (
   imageData: string,
@@ -51,10 +67,12 @@ export const analyzeInstallationState = async (
 
   try {
     // Use backend proxy API instead of direct API call
+    const apiKey = getApiKey();
     const response = await fetch("/api/proxy/zhipu/chat", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-zhipu-api-key": apiKey
       },
       body: JSON.stringify({
         model: model,
@@ -108,9 +126,13 @@ export const chatWithAssistant = async (
   ];
 
   try {
+    const apiKey = getApiKey();
     const response = await fetch("/api/proxy/zhipu/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-zhipu-api-key": apiKey
+      },
       body: JSON.stringify({
         model: model,
         messages: formattedMessages,
@@ -131,10 +153,12 @@ export const chatWithAssistant = async (
 export const generateEmbedding = async (text: string, dimensions: number = 1024): Promise<number[] | null> => {
   try {
     // Use Embedding-3 model with custom dimensions
+    const apiKey = getApiKey();
     const response = await fetch("/api/proxy/zhipu/embeddings", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-zhipu-api-key": apiKey
       },
       body: JSON.stringify({
         model: "embedding-3",
@@ -152,9 +176,162 @@ export const generateEmbedding = async (text: string, dimensions: number = 1024)
   }
 };
 
-export const generateSpeech = async (text: string) => {
-  // ... existing speech code ...
-  // Zhipu currently mostly supports text, for TTS we might need a different partner or browser fallback.
-  // For now, return null to trigger system fallback or implement if Zhipu adds TTS.
-  return null;
+export const generateSpeech = async (text: string, voice: string = "tongtong") => {
+  try {
+    // 尝试使用智谱AI的文本转语音服务
+    const audioBlob = await textToSpeech(text, voice);
+    if (audioBlob) {
+      // 如果成功获取音频，创建音频URL并返回
+      const audioUrl = URL.createObjectURL(audioBlob);
+      return audioUrl;
+    }
+    
+    // 如果智谱AI服务失败，使用浏览器内置的TTS作为备选
+    console.log("Using browser TTS fallback");
+    return null; // 返回null触发系统fallback
+  } catch (error) {
+    console.error("Generate Speech Error", error);
+    return null;
+  }
+};
+
+// 音色复刻
+export const cloneVoice = async (
+  voiceName: string,
+  input: string,
+  fileId: string,
+  text?: string,
+  requestId?: string
+) => {
+  try {
+    const apiKey = getApiKey();
+    const response = await fetch("/api/proxy/zhipu/voice/clone", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-zhipu-api-key": apiKey
+      },
+      body: JSON.stringify({
+        model: "glm-tts-clone",
+        voice_name: voiceName,
+        input: input,
+        file_id: fileId,
+        text: text,
+        request_id: requestId
+      })
+    });
+
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error("Voice Clone Error:", data.error.message);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Voice Clone Error", error);
+    return null;
+  }
+};
+
+// 获取音色列表
+export const getVoiceList = async (voiceName?: string, voiceType?: 'OFFICIAL' | 'PRIVATE') => {
+  try {
+    let url = "/api/proxy/zhipu/voice/list";
+    
+    // 构建查询参数
+    const params = new URLSearchParams();
+    if (voiceName) params.append('voiceName', voiceName);
+    if (voiceType) params.append('voiceType', voiceType);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const apiKey = getApiKey();
+    const response = await fetch(url, {
+      headers: {
+        "x-zhipu-api-key": apiKey
+      }
+    });
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error("Get Voice List Error:", data.error.message);
+      return [];
+    }
+    
+    return data.voice_list || [];
+  } catch (error) {
+    console.error("Get Voice List Error", error);
+    return [];
+  }
+};
+
+// 删除音色
+export const deleteVoice = async (voice: string, requestId?: string) => {
+  try {
+    const apiKey = getApiKey();
+    const response = await fetch("/api/proxy/zhipu/voice/delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-zhipu-api-key": apiKey
+      },
+      body: JSON.stringify({
+        voice: voice,
+        request_id: requestId
+      })
+    });
+
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error("Delete Voice Error:", data.error.message);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Delete Voice Error", error);
+    return null;
+  }
+};
+
+// 文本转语音（使用智谱AI）
+export const textToSpeech = async (
+  text: string,
+  voice: string = "tongtong",
+  responseFormat: string = "wav"
+) => {
+  try {
+    const apiKey = getApiKey();
+    const response = await fetch("/api/proxy/zhipu/speech", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-zhipu-api-key": apiKey
+      },
+      body: JSON.stringify({
+        model: "glm-tts",
+        input: text,
+        voice: voice,
+        response_format: responseFormat
+      })
+    });
+
+    if (response.ok) {
+      // 处理二进制音频响应
+      const audioBlob = await response.blob();
+      return audioBlob;
+    } else {
+      const errorData = await response.json();
+      console.error("Text to Speech Error:", errorData.error?.message || "API request failed");
+      return null;
+    }
+  } catch (error) {
+    console.error("Text to Speech Error", error);
+    return null;
+  }
 };

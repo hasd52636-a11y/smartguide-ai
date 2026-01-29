@@ -4,7 +4,8 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const API_KEY_ZHIPU = process.env.ZHIPU_API_KEY;
+    // 优先使用请求中的API密钥，其次使用环境变量
+    const API_KEY_ZHIPU = req.headers['x-zhipu-api-key'] || process.env.ZHIPU_API_KEY;
 
     if (!API_KEY_ZHIPU) {
         return res.status(500).json({ error: "Server missing Zhipu API Key" });

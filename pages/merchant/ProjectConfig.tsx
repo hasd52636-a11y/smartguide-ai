@@ -1,11 +1,12 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../../components/Layout.tsx';
 import { ICONS } from '../../constants.tsx';
 import { useStore } from '../../store.ts';
 import { VoiceGender, LLMProvider, InstallationStep, TTSEngine } from '../../types.ts';
 import { QRCodeSVG } from 'qrcode.react';
+import { getVoiceList, cloneVoice, deleteVoice, textToSpeech } from '../../services/zhipuService.ts';
 
 const ProjectConfig: React.FC = () => {
   const { id } = useParams();
@@ -16,6 +17,28 @@ const ProjectConfig: React.FC = () => {
   const [isParsing, setIsParsing] = useState(false);
   const [newRestriction, setNewRestriction] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 声音管理相关状态
+  const [voices, setVoices] = useState<any[]>([]);
+  const [isLoadingVoices, setIsLoadingVoices] = useState(false);
+  const [isCloningVoice, setIsCloningVoice] = useState(false);
+  const [isPlayingVoice, setIsPlayingVoice] = useState<string | null>(null);
+  const [voiceCloneForm, setVoiceCloneForm] = useState({
+    voiceName: '',
+    inputText: '欢迎使用我们的智能助手',
+    fileId: '',
+    sampleText: ''
+  });
+  const [selectedVoice, setSelectedVoice] = useState<string>('tongtong');
+  const voiceFileInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // 初始化selectedVoice
+  useEffect(() => {
+    if (project?.config?.voice) {
+      setSelectedVoice(project.config.voice);
+    }
+  }, [project]);
 
   if (!project) return <div>{t.projectNotFound}</div>;
 
@@ -100,6 +123,168 @@ const ProjectConfig: React.FC = () => {
   const removeRestriction = (index: number) => {
     const updatedBlacklist = (project.config.blacklist || []).filter((_, i) => i !== index);
     updateProject(project.id, { config: { ...project.config, blacklist: updatedBlacklist } });
+  };
+  
+  // 声音管理相关函数
+  const loadVoices = async () => {
+    setIsLoadingVoices(true);
+    try {
+      const voiceList = await getVoiceList();
+      setVoices(voiceList);
+    } catch (error) {
+      console.error('Failed to load voices:', error);
+    } finally {
+      setIsLoadingVoices(false);
+    }
+  };
+  
+  useEffect(() => {
+    // 当切换到assistant标签时加载音色列表
+    if (activeTab === 'assistant') {
+      loadVoices();
+    }
+  }, [activeTab]);
+  
+  const handleVoiceSelect = (voiceId: string) => {
+    setSelectedVoice(voiceId);
+    updateProject(project.id, { config: { ...project.config, voice: voiceId } });
+  };
+  
+  const handleVoiceFileSelect = () => {
+    voiceFileInputRef.current?.click();
+  };
+  
+  // 音色名称映射表
+  const voiceNameMap: Record<string, string> = {
+    'jam1': '雅琳',
+    'luodo': '梦琪',
+    'kazi': '雨桐',
+    'douji': '诗涵',
+    'jam': '婉晴',
+    'tongtong': '专业女声',
+    'xiaochen': '子轩',
+    'chuichui': '浩然',
+    '测试1': '俊杰',
+    '测试': '明宇',
+    '窦老师音色': '泽阳',
+    '教师音色4': '雨泽',
+    '教师音色3': '文轩',
+    '教师音色2': '浩宇',
+    '教师音色1': '梓晨',
+    '教师音色0': '铭轩',
+    '标准女声': '专业女声',
+    '标准男声': '稳重男声'
+  };
+
+  const handleVoiceFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    // 这里应该上传文件到服务器获取fileId
+    // 为了演示，使用模拟的fileId
+    setVoiceCloneForm(prev => ({ ...prev, fileId: 'file_' + Math.random().toString(36).substr(2, 9) }));
+    alert('文件上传成功，已生成模拟fileId');
+  };
+  
+  const handleCloneVoice = async () => {
+    if (!voiceCloneForm.voiceName || !voiceCloneForm.inputText || !voiceCloneForm.fileId) {
+      alert('请填写所有必填字段');
+      return;
+    }
+    
+    setIsCloningVoice(true);
+    try {
+      const result = await cloneVoice(
+        voiceCloneForm.voiceName,
+        voiceCloneForm.inputText,
+        voiceCloneForm.fileId,
+        voiceCloneForm.sampleText
+      );
+      
+      if (result) {
+        alert('音色复刻成功！');
+        // 重新加载音色列表
+        loadVoices();
+        // 重置表单
+        setVoiceCloneForm({
+          voiceName: '',
+          inputText: '欢迎使用我们的智能助手',
+          fileId: '',
+          sampleText: ''
+        });
+      } else {
+        alert('音色复刻失败，请重试');
+      }
+    } catch (error) {
+      console.error('Failed to clone voice:', error);
+      alert('音色复刻失败，请重试');
+    } finally {
+      setIsCloningVoice(false);
+    }
+  };
+  
+  const handleDeleteVoice = async (voiceId: string) => {
+    if (window.confirm('确定要删除这个音色吗？')) {
+      try {
+        const result = await deleteVoice(voiceId);
+        if (result) {
+          alert('音色删除成功！');
+          // 重新加载音色列表
+          loadVoices();
+          // 如果删除的是当前选中的音色，切换到默认音色
+          if (selectedVoice === voiceId) {
+            setSelectedVoice('tongtong');
+            updateProject(project.id, { config: { ...project.config, voice: 'tongtong' } });
+          }
+        } else {
+          alert('音色删除失败，请重试');
+        }
+      } catch (error) {
+        console.error('Failed to delete voice:', error);
+        alert('音色删除失败，请重试');
+      }
+    }
+  };
+  
+  // 播放示例音频
+  const playVoiceSample = async (voiceId: string) => {
+    try {
+      // 停止当前正在播放的音频
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      
+      setIsPlayingVoice(voiceId);
+      const sampleText = '我是AI时代的售后助手！';
+      
+      const audioBlob = await textToSpeech(sampleText, voiceId);
+      if (audioBlob) {
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        
+        audio.onended = () => {
+          setIsPlayingVoice(null);
+          URL.revokeObjectURL(audioUrl);
+        };
+        
+        audio.onerror = () => {
+          setIsPlayingVoice(null);
+          URL.revokeObjectURL(audioUrl);
+          alert('播放失败，请重试');
+        };
+        
+        await audio.play();
+      } else {
+        setIsPlayingVoice(null);
+        alert('生成音频失败，请重试');
+      }
+    } catch (error) {
+      console.error('Failed to play voice sample:', error);
+      setIsPlayingVoice(null);
+      alert('播放失败，请重试');
+    }
   };
 
   const addStep = () => {
@@ -304,6 +489,10 @@ const ProjectConfig: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-6">
                   <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">{t.systemPrompt}</label>
+                    <textarea rows={4} className="w-full px-5 py-4 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium leading-relaxed" value={project.config.systemPrompt} onChange={(e) => updateProject(project.id, { config: { ...project.config, systemPrompt: e.target.value } })} />
+                  </div>
+                  <div>
                     <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">{t.assistantName}</label>
                     <input className="w-full px-4 py-3 rounded-xl bg-gray-50 font-bold outline-none" value={project.config.assistantName} onChange={(e) => updateProject(project.id, { config: { ...project.config, assistantName: e.target.value } })} />
                   </div>
@@ -328,7 +517,7 @@ const ProjectConfig: React.FC = () => {
                             onClick={() => updateProject(project.id, { config: { ...project.config, brandLogo: undefined } })} 
                             className="absolute top-4 right-4 p-2 text-gray-300 hover:text-red-500 transition-colors"
                           >
-                            <ICONS.LogOut className="w-4 h-4 rotate-45" />
+                            <ICONS.Trash className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
@@ -357,6 +546,21 @@ const ProjectConfig: React.FC = () => {
                       )}
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">{t.forbiddenBehaviors}</label>
+                    <div className="space-y-2 mb-4">
+                      {(project.config.blacklist || []).map((item, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-red-50 text-red-700 rounded-xl text-xs font-bold border border-red-100">
+                          <span>{item}</span>
+                          <button onClick={() => removeRestriction(i)}><ICONS.Trash className="w-3 h-3" /></button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input className="flex-1 px-4 py-2 bg-gray-50 rounded-xl text-xs outline-none" placeholder={t.addRestriction} value={newRestriction} onChange={(e) => setNewRestriction(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addRestriction()} />
+                      <button onClick={addRestriction} className="px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold">{t.add}</button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">{t.llmProvider}</label>
@@ -371,32 +575,202 @@ const ProjectConfig: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">{t.voiceGender}</label>
-                    <div className="flex gap-2">
-                      {[VoiceGender.FEMALE, VoiceGender.MALE].map(gender => (
-                        <button key={gender} onClick={() => updateProject(project.id, { config: { ...project.config, voiceGender: gender } })} className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs ${project.config.voiceGender === gender ? 'border-blue-600 bg-blue-50' : 'border-gray-50'}`}>{gender === VoiceGender.FEMALE ? t.female : t.male}</button>
-                      ))}
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">API密钥配置</label>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">智谱AI API密钥</label>
+                        <input 
+                          type="password" 
+                          value={project.config.zhipuApiKey || ''} 
+                          onChange={(e) => updateProject(project.id, { config: { ...project.config, zhipuApiKey: e.target.value } })} 
+                          placeholder="请输入智谱AI API密钥" 
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">用于语音合成、音色克隆等功能</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Gemini API密钥</label>
+                        <input 
+                          type="password" 
+                          value={project.config.geminiApiKey || ''} 
+                          onChange={(e) => updateProject(project.id, { config: { ...project.config, geminiApiKey: e.target.value } })} 
+                          placeholder="请输入Gemini API密钥" 
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">用于图像分析等功能</p>
+                      </div>
                     </div>
                   </div>
+
                 </div>
                 <div className="space-y-6">
+                  {/* 声音管理模块 */}
                   <div>
-                    <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">{t.systemPrompt}</label>
-                    <textarea rows={6} className="w-full px-5 py-4 rounded-2xl bg-gray-50 border-none focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium leading-relaxed" value={project.config.systemPrompt} onChange={(e) => updateProject(project.id, { config: { ...project.config, systemPrompt: e.target.value } })} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">{t.forbiddenBehaviors}</label>
-                    <div className="space-y-2 mb-4">
-                      {(project.config.blacklist || []).map((item, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-red-50 text-red-700 rounded-xl text-xs font-bold border border-red-100">
-                          <span>{item}</span>
-                          <button onClick={() => removeRestriction(i)}><ICONS.LogOut className="w-3 h-3 rotate-45" /></button>
-                        </div>
-                      ))}
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">语音音色</label>
+                    
+                    {/* 内置音色选择 */}
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      <div className={`rounded-xl border-2 ${selectedVoice === 'tongtong' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-50'}`}>
+                        <button 
+                          onClick={() => handleVoiceSelect('tongtong')} 
+                          className="w-full py-3 font-bold"
+                        >
+                          专业女声
+                        </button>
+                        <button 
+                          onClick={() => playVoiceSample('tongtong')} 
+                          className="w-full py-2 text-sm text-blue-600 hover:text-blue-800 transition-colors flex items-center justify-center gap-1"
+                        >
+                          {isPlayingVoice === 'tongtong' ? (
+                            <ICONS.Clock className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ICONS.Volume2 className="w-4 h-4" />
+                          )}
+                          播放示例
+                        </button>
+                      </div>
+                      <div className={`rounded-xl border-2 ${selectedVoice === 'zhichao' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-50'}`}>
+                        <button 
+                          onClick={() => handleVoiceSelect('zhichao')} 
+                          className="w-full py-3 font-bold"
+                        >
+                          稳重男声
+                        </button>
+                        <button 
+                          onClick={() => playVoiceSample('zhichao')} 
+                          className="w-full py-2 text-sm text-blue-600 hover:text-blue-800 transition-colors flex items-center justify-center gap-1"
+                        >
+                          {isPlayingVoice === 'zhichao' ? (
+                            <ICONS.Clock className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ICONS.Volume2 className="w-4 h-4" />
+                          )}
+                          播放示例
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <input className="flex-1 px-4 py-2 bg-gray-50 rounded-xl text-xs outline-none" placeholder={t.addRestriction} value={newRestriction} onChange={(e) => setNewRestriction(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addRestriction()} />
-                      <button onClick={addRestriction} className="px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold">{t.add}</button>
+                    
+                    {/* 自定义音色列表 */}
+                    <div className="mb-6">
+                      <h4 className="text-sm font-bold text-gray-700 mb-3">自定义音色</h4>
+                      {isLoadingVoices ? (
+                        <div className="text-center py-4 text-gray-500">加载中...</div>
+                      ) : voices.length === 0 ? (
+                        <div className="text-center py-4 text-gray-500">暂无自定义音色</div>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-2">
+                          {voices.map((voice, index) => (
+                            <div 
+                              key={index} 
+                              className={`p-2 rounded-lg border-2 transition-all text-center min-h-[60px] flex flex-col ${selectedVoice === voice.voice ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-50 bg-gray-50'}`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[9px] text-gray-400 font-bold">{index + 1}</span>
+                                <div className="flex gap-1">
+                                  <button 
+                                    onClick={() => playVoiceSample(voice.voice)} 
+                                    className="p-0.5 text-blue-600 hover:text-blue-800 transition-colors"
+                                  >
+                                    {isPlayingVoice === voice.voice ? (
+                                      <ICONS.Clock className="w-2.5 h-2.5 animate-spin" />
+                                    ) : (
+                                      <ICONS.Volume2 className="w-2.5 h-2.5" />
+                                    )}
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteVoice(voice.voice)} 
+                                    className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"
+                                  >
+                                    <ICONS.Trash className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => handleVoiceSelect(voice.voice)} 
+                                className={`block w-full text-[9px] font-bold mb-1 truncate ${selectedVoice === voice.voice ? 'text-blue-700' : 'text-gray-700'}`}
+                              >
+                                {voiceNameMap[voice.voice_name || voice.voice] || voice.voice_name || voice.voice}
+                              </button>
+                              <div className="mt-auto">
+                                {selectedVoice === voice.voice && (
+                                  <div className="text-[8px] text-blue-600 font-bold bg-blue-100 px-2 py-0.5 rounded-full inline-block mx-auto">
+                                    系统
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* 音色复刻表单 */}
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                      <h4 className="text-sm font-bold text-gray-700 mb-3">音色复刻</h4>
+                      <input 
+                        type="file" 
+                        ref={voiceFileInputRef} 
+                        className="hidden" 
+                        onChange={handleVoiceFileChange}
+                        accept=".mp3,.wav"
+                      />
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">音色名称</label>
+                          <input 
+                            type="text" 
+                            value={voiceCloneForm.voiceName} 
+                            onChange={(e) => setVoiceCloneForm(prev => ({ ...prev, voiceName: e.target.value }))}
+                            placeholder="请输入音色名称"
+                            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">输入文本</label>
+                          <input 
+                            type="text" 
+                            value={voiceCloneForm.inputText} 
+                            onChange={(e) => setVoiceCloneForm(prev => ({ ...prev, inputText: e.target.value }))}
+                            placeholder="请输入复刻文本"
+                            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">声音样本</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              value={voiceCloneForm.fileId} 
+                              readOnly 
+                              placeholder="请上传声音文件"
+                              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button 
+                              onClick={handleVoiceFileSelect}
+                              className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors"
+                            >
+                              上传
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">示例文本（可选）</label>
+                          <input 
+                            type="text" 
+                            value={voiceCloneForm.sampleText} 
+                            onChange={(e) => setVoiceCloneForm(prev => ({ ...prev, sampleText: e.target.value }))}
+                            placeholder="请输入示例文本"
+                            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <button 
+                          onClick={handleCloneVoice}
+                          disabled={isCloningVoice}
+                          className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                          {isCloningVoice ? '复刻中...' : '开始复刻'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
