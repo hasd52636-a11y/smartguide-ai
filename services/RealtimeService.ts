@@ -146,7 +146,11 @@ class RealtimeService {
           create_response: true,
           interrupt_response: true
         },
-        system_prompt: this.systemPrompt
+        system_prompt: this.systemPrompt,
+        authorization: {
+          type: 'api_key',
+          api_key: this.apiKey
+        }
       }
     };
 
