@@ -48,6 +48,7 @@ export interface ProjectConfig {
   brandLogo?: string;
   blacklist: string[];
   provider: LLMProvider;
+  greeting: string; // 新增：用户可自定义的问候语
 }
 
 export interface Project {

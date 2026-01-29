@@ -57,9 +57,13 @@ const ClientGuide: React.FC = () => {
   // Initialize
   useEffect(() => {
     if (project) {
+      // 使用项目配置的问候语，如果没有则使用默认问候语
+      const greeting = project.config.greeting || `亲爱的顾客你好，我是${project.config.assistantName || '清泉助手'}，您的饮用水专家，有任何产品疑问我都可以帮您解答哦！`;
       setMessages([
-        { role: 'assistant', content: `${t.ttsWelcome} ${project.steps[0]?.name || t.defaultStep}` }
+        { role: 'assistant', content: greeting }
       ]);
+      // 自动播放问候语
+      speak(greeting);
     }
     // Request Camera early for seamless switch
     initCamera();

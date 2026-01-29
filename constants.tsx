@@ -55,6 +55,7 @@ export const DEFAULT_PROJECTS: any[] = [
       voiceGender: 'female',
       blacklist: ['不要建议用户饮用过期矿泉水', '不要建议用户将矿泉水瓶用于其他危险用途'],
       provider: 'zhipu',
+      greeting: '亲爱的顾客你好，我是清泉助手，您的饮用水专家，有任何产品疑问我都可以帮您解答哦！',
       brandLogo: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=clean%20mineral%20water%20bottle%20logo%20with%20blue%20water%20drop%20symbol%20and%20green%20leaf%2C%20clean%20modern%20design&image_size=square',
       brandInfo: {
         name: '清泉矿泉水',

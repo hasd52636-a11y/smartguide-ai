@@ -308,6 +308,11 @@ const ProjectConfig: React.FC = () => {
                     <input className="w-full px-4 py-3 rounded-xl bg-gray-50 font-bold outline-none" value={project.config.assistantName} onChange={(e) => updateProject(project.id, { config: { ...project.config, assistantName: e.target.value } })} />
                   </div>
                   <div>
+                    <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">问候语</label>
+                    <input className="w-full px-4 py-3 rounded-xl bg-gray-50 font-bold outline-none" value={project.config.greeting || '亲爱的顾客你好，我是清泉助手，您的饮用水专家，有任何产品疑问我都可以帮您解答哦！'} onChange={(e) => updateProject(project.id, { config: { ...project.config, greeting: e.target.value } })} />
+                    <p className="text-xs text-gray-400 mt-2">用户连接后会自动发送一次问候语，用于欢迎用户</p>
+                  </div>
+                  <div>
                     <label className="block text-xs font-black uppercase text-gray-400 mb-3 tracking-widest">品牌Logo</label>
                     <div className="space-y-4">
                       {project.config.brandLogo ? (
