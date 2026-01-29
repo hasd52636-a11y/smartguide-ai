@@ -190,28 +190,75 @@ const ProjectConfig: React.FC = () => {
           )}
 
           {activeTab === 'knowledge' && (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              {isParsing ? (
-                <div className="space-y-6">
-                  <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-                  <p className="font-bold text-gray-900">{t.parsingFiles}</p>
-                </div>
-              ) : (
-                <>
-                  <div className="bg-blue-50 p-10 rounded-full mb-8">
-                    <ICONS.Database className="w-16 h-16 text-blue-600" />
-                  </div>
-                  <h3 className="text-2xl font-black text-gray-900 mb-4">{t.uploadManuals}</h3>
-                  <div className="flex gap-4 mb-8">
-                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2 text-xs font-bold text-gray-500"><ICONS.Smartphone className="w-4 h-4" /> {t.docTxt}</div>
-                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2 text-xs font-bold text-gray-500"><ICONS.Wrench className="w-4 h-4" /> {t.docPdf}</div>
-                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2 text-xs font-bold text-gray-500"><ICONS.Camera className="w-4 h-4" /> {t.docVideo}</div>
-                  </div>
-                  <p className="text-gray-400 max-w-md mx-auto mb-8 font-medium">{t.parsingDesc}</p>
-                  <button onClick={simulateParsing} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
+            <div className="space-y-8">
+              <h3 className="text-xl font-bold text-gray-900">{t.knowledgeBase}</h3>
+              
+              {/* 知识库文件列表 */}
+              <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="font-bold text-gray-700">{t.uploadManuals}</h4>
+                  <button 
+                    className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition-all"
+                    onClick={simulateParsing}
+                  >
                     {t.selectFilesBtn}
                   </button>
-                </>
+                </div>
+                
+                <div className="flex gap-4 mb-6">
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2 text-xs font-bold text-gray-500"><ICONS.Smartphone className="w-4 h-4" /> {t.docTxt}</div>
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2 text-xs font-bold text-gray-500"><ICONS.Wrench className="w-4 h-4" /> {t.docPdf}</div>
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2 text-xs font-bold text-gray-500"><ICONS.Camera className="w-4 h-4" /> {t.docVideo}</div>
+                </div>
+                
+                <p className="text-gray-400 max-w-md mx-auto mb-6 font-medium">{t.parsingDesc}</p>
+                
+                {/* 模拟知识库文件列表 */}
+                <div className="space-y-3">
+                  {project.knowledgeBase.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100">
+                          {item.type === 'text' && <ICONS.Database className="w-5 h-5 text-gray-600" />}
+                          {item.type === 'image' && <ICONS.Camera className="w-5 h-5 text-gray-600" />}
+                          {item.type === 'video' && <ICONS.Camera className="w-5 h-5 text-gray-600" />}
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm text-gray-900">
+                            {item.type === 'text' && 'Product Manual'}
+                            {item.type === 'image' && 'Product Image'}
+                            {item.type === 'video' && 'Installation Video'}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {item.type === 'text' && 'Text Document'}
+                            {item.type === 'image' && 'Image File'}
+                            {item.type === 'video' && `${item.duration || 0}s Video`}
+                          </div>
+                        </div>
+                      </div>
+                      <button className="text-gray-400 hover:text-red-500 transition-colors">
+                        <ICONS.LogOut className="w-4 h-4 rotate-45" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {project.knowledgeBase.length === 0 && (
+                    <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-gray-400 font-medium">
+                      {t.noSteps}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* 解析文件生成步骤 */}
+              {isParsing && (
+                <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-center justify-center">
+                  <div className="bg-white rounded-3xl p-8 max-w-md mx-auto text-center">
+                    <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+                    <p className="font-bold text-gray-900 mb-2">{t.parsingFiles}</p>
+                    <p className="text-gray-500 text-sm">{t.parseNotice}</p>
+                  </div>
+                </div>
               )}
             </div>
           )}
