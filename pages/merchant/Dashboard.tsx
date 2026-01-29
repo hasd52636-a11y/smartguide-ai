@@ -8,8 +8,12 @@ import { useStore } from '../../store.ts';
 import { Project, VoiceGender, LLMProvider, TTSEngine } from '../../types.ts';
 
 const Dashboard: React.FC = () => {
-  const { projects, addProject, t } = useStore();
+  const { projects, addProject, updateProject, t } = useStore();
   const navigate = useNavigate();
+
+  const handleStatusChange = (projectId: string, newStatus: 'active' | 'inactive') => {
+    updateProject(projectId, { status: newStatus });
+  };
 
   const createNewProject = () => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -66,11 +70,22 @@ const Dashboard: React.FC = () => {
                 <div className="bg-blue-50 p-2.5 rounded-xl">
                   <ICONS.Smartphone className="w-5 h-5 text-blue-600" />
                 </div>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                  project.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {project.status === 'active' ? t.active : t.draft}
-                </span>
+                <div className="flex items-center">
+                  <span className={`text-xs font-semibold mr-2 ${
+                    project.status === 'active' ? 'text-green-700' : 'text-gray-600'
+                  }`}>
+                    {project.status === 'active' ? t.active : t.inactive}
+                  </span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={project.status === 'active'}
+                      onChange={(e) => handleStatusChange(project.id, e.target.checked ? 'active' : 'inactive')}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
               </div>
               <h3 className="font-bold text-gray-900 text-lg mb-1">{project.name}</h3>
               <p className="text-gray-500 text-sm line-clamp-2">{project.description}</p>

@@ -15,8 +15,16 @@
       "dest": "/api/proxy/gemini/chat.js"
     },
     {
+      "src": "/api/proxy/gemini/status",
+      "dest": "/api/proxy/gemini/status.js"
+    },
+    {
       "src": "/api/proxy/zhipu/chat",
       "dest": "/api/proxy/zhipu/chat.js"
+    },
+    {
+      "src": "/api/proxy/zhipu/status",
+      "dest": "/api/proxy/zhipu/status.js"
     },
     {
       "src": "/(.*)",
