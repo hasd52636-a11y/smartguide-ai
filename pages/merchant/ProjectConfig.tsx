@@ -215,7 +215,7 @@ const ProjectConfig: React.FC = () => {
                 
                 {/* 模拟知识库文件列表 */}
                 <div className="space-y-3">
-                  {project.knowledgeBase.map((item, index) => (
+                  {(project.knowledgeBase || []).map((item, index) => (
                     <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100">
@@ -242,7 +242,7 @@ const ProjectConfig: React.FC = () => {
                     </div>
                   ))}
                   
-                  {project.knowledgeBase.length === 0 && (
+                  {(project.knowledgeBase || []).length === 0 && (
                     <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-gray-400 font-medium">
                       {t.noSteps}
                     </div>
