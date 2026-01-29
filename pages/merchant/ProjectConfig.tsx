@@ -42,22 +42,33 @@ const ProjectConfig: React.FC = () => {
     try {
       // In a real app, this would process the selected files
       // For MVP demonstration, we will generate mock knowledge base content
+      const currentDate = new Date().toISOString().split('T')[0];
       const mockKnowledgeBase = [
         {
           type: 'text' as const,
           text: "Power Connection: Plug in the Type-C cable. Ensure it clicks.",
-          embedding: []
+          embedding: [],
+          thumbnail: 'https://via.placeholder.com/100x100?text=Document',
+          summary: 'Contains instructions for power connection setup',
+          date: currentDate,
+          filename: 'product-manual.txt'
         },
         {
           type: 'image' as const,
           url: 'https://via.placeholder.com/400x300?text=Product+Image',
-          thumbnail: 'https://via.placeholder.com/100x100?text=Thumbnail'
+          thumbnail: 'https://via.placeholder.com/100x100?text=Thumbnail',
+          summary: 'Product image showing the device',
+          date: currentDate,
+          filename: 'product-image.jpg'
         },
         {
           type: 'video' as const,
           url: 'https://via.placeholder.com/640x360?text=Installation+Video',
           thumbnail: 'https://via.placeholder.com/100x100?text=Video+Thumbnail',
-          duration: 120
+          duration: 120,
+          summary: 'Step-by-step installation video (2 minutes)',
+          date: currentDate,
+          filename: 'installation-guide.mp4'
         }
       ];
 
@@ -206,7 +217,10 @@ const ProjectConfig: React.FC = () => {
                   onChange={handleFileChange}
                 />
                 <div className="flex items-center justify-between mb-6">
-                  <h4 className="font-bold text-gray-700">{t.knowledgeBase}</h4>
+                  <div>
+                    <h4 className="font-bold text-gray-700">{t.knowledgeBase}</h4>
+                    <p className="text-xs text-gray-400">{project.knowledgeBase?.length || 0} 个文档</p>
+                  </div>
                   <button 
                     className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition-all"
                     onClick={handleFileSelect}
@@ -228,27 +242,37 @@ const ProjectConfig: React.FC = () => {
                 {/* 模拟知识库文件列表 */}
                 <div className="space-y-3">
                   {(project.knowledgeBase || []).map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100">
-                          {item.type === 'text' && <ICONS.Database className="w-5 h-5 text-gray-600" />}
-                          {item.type === 'image' && <ICONS.Camera className="w-5 h-5 text-gray-600" />}
-                          {item.type === 'video' && <ICONS.Camera className="w-5 h-5 text-gray-600" />}
-                        </div>
-                        <div>
-                          <div className="font-bold text-sm text-gray-900">
-                            {item.type === 'text' && 'Product Manual'}
-                            {item.type === 'image' && 'Product Image'}
-                            {item.type === 'video' && 'Installation Video'}
+                    <div key={index} className="flex items-start justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        {item.thumbnail ? (
+                          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                            <img src={item.thumbnail} alt="Thumbnail" className="w-full h-full object-cover" />
                           </div>
-                          <div className="text-xs text-gray-400">
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-gray-100 flex-shrink-0">
+                            {item.type === 'text' && <ICONS.Database className="w-6 h-6 text-gray-600" />}
+                            {item.type === 'image' && <ICONS.Camera className="w-6 h-6 text-gray-600" />}
+                            {item.type === 'video' && <ICONS.Camera className="w-6 h-6 text-gray-600" />}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="font-bold text-sm text-gray-900">
+                            {item.filename || (item.type === 'text' && 'Product Manual') || (item.type === 'image' && 'Product Image') || (item.type === 'video' && 'Installation Video')}
+                          </div>
+                          <div className="text-xs text-gray-400 mb-2">
                             {item.type === 'text' && 'Text Document'}
                             {item.type === 'image' && 'Image File'}
                             {item.type === 'video' && `${item.duration || 0}s Video`}
+                            {item.date && ` • ${item.date}`}
                           </div>
+                          {item.summary && (
+                            <div className="text-xs text-gray-600 line-clamp-2 mb-2">
+                              {item.summary}
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <button className="text-gray-400 hover:text-red-500 transition-colors">
+                      <button className="text-gray-400 hover:text-red-500 transition-colors mt-1">
                         <ICONS.LogOut className="w-4 h-4 rotate-45" />
                       </button>
                     </div>
