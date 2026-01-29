@@ -132,7 +132,7 @@ const ClientGuide: React.FC = () => {
       `;
 
       // 2. Chat with LLM
-      const contextMessages = messages.slice(-5).map(m => ({ role: m.role, content: m.content }));
+      const contextMessages = (messages || []).slice(-5).map(m => ({ role: m.role, content: m.content }));
       contextMessages.push({ role: 'user', content: userMsg });
 
       const responseText = await chatWithAssistant(contextMessages, systemPrompt);
@@ -212,7 +212,7 @@ const ClientGuide: React.FC = () => {
   const renderTextMode = () => (
     <div className="flex flex-col h-full bg-gray-50">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, idx) => (
+        {(messages || []).map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] p-3 rounded-2xl ${msg.role === 'user'
                 ? 'bg-blue-600 text-white rounded-br-none'
