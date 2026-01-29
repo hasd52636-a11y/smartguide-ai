@@ -65,6 +65,9 @@ export interface Project {
     embedding?: number[];
     thumbnail?: string;
     duration?: number;
+    summary?: string;
+    date?: string;
+    filename?: string;
   }>;
   usage: UsageStats;
 }

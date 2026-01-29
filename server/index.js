@@ -8,9 +8,9 @@ import * as db from './db.js';
 import { GoogleGenAI } from "@google/genai";
 
 // Environment variables
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const API_KEY_GEMINI = process.env.API_KEY || ''; // Read from env
-const API_KEY_ZHIPU = process.env.ZHIPU_API_KEY || '';
+const API_KEY_ZHIPU = process.env.ZHIPU_API_KEY || "a75d46768b0f45dc90a5969077ffc8d9.dT0t2tku3hZGfYkk";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -110,6 +110,61 @@ app.post('/api/proxy/zhipu/embeddings', async (req, res) => {
     } catch (e) {
         console.error("Zhipu Embeddings Proxy Error", e);
         res.status(500).json({ error: e.message });
+    }
+});
+
+// API状态检查端点
+app.get('/api/proxy/zhipu/status', async (req, res) => {
+    if (!API_KEY_ZHIPU) return res.json({ ok: false, error: "Server missing Zhipu API Key" });
+
+    try {
+        // 发送一个简单的请求来检查API是否正常
+        const response = await fetch("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY_ZHIPU}`
+            },
+            body: JSON.stringify({
+                model: "glm-4-flash",
+                messages: [{
+                    role: "user",
+                    content: "ping"
+                }],
+                max_tokens: 1
+            })
+        });
+
+        if (response.ok) {
+            res.json({ ok: true });
+        } else {
+            const errorData = await response.json();
+            res.json({ ok: false, error: errorData.error?.message || "API request failed" });
+        }
+    } catch (e) {
+        console.error("Zhipu API Status Check Error", e);
+        res.json({ ok: false, error: e.message });
+    }
+});
+
+app.get('/api/proxy/gemini/status', async (req, res) => {
+    if (!API_KEY_GEMINI) return res.json({ ok: false, error: "Server missing Gemini API Key" });
+
+    try {
+        const client = new GoogleGenAI({ apiKey: API_KEY_GEMINI });
+        // 发送一个简单的请求来检查API是否正常
+        const response = await client.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
+            config: {
+                maxOutputTokens: 1
+            }
+        });
+
+        res.json({ ok: true });
+    } catch (e) {
+        console.error("Gemini API Status Check Error", e);
+        res.json({ ok: false, error: e.message });
     }
 });
 

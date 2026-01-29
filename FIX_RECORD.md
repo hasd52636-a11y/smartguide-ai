@@ -92,8 +92,8 @@
 // constants.tsx 中的默认项目数据缺少 usage 属性
 const DEFAULT_PROJECTS = [
   {
-    id: 'p1',
-    name: '智选智能水杯 X1 (Smart Bottle)',
+    id: 'mineral-water-1',
+    name: '矿泉水使用指南',
     // ... 其他属性
     // 缺少 usage 属性
   }
@@ -105,8 +105,8 @@ const DEFAULT_PROJECTS = [
 // 添加了完整的 usage 属性
 const DEFAULT_PROJECTS = [
   {
-    id: 'p1',
-    name: '智选智能水杯 X1 (Smart Bottle)',
+    id: 'mineral-water-1',
+    name: '矿泉水使用指南',
     // ... 其他属性
     usage: {
       totalTokensUsed: 0

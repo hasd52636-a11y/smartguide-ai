@@ -27,7 +27,20 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [projects, setProjects] = useState<Project[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : DEFAULT_PROJECTS;
+      if (saved) {
+        const parsedProjects = JSON.parse(saved);
+        // Check if there are any old smart bottle projects
+        const hasOldProjects = parsedProjects.some((p: Project) => 
+          p.name.includes('智能水杯') || p.name.includes('Smart Bottle')
+        );
+        // If there are old projects, use the new default mineral water project
+        if (hasOldProjects) {
+          localStorage.removeItem(STORAGE_KEY);
+          return DEFAULT_PROJECTS;
+        }
+        return parsedProjects;
+      }
+      return DEFAULT_PROJECTS;
     } catch (e) {
       console.error("Failed to load projects from localStorage", e);
       return DEFAULT_PROJECTS;
